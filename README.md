@@ -79,8 +79,26 @@ For more information please see `./CONTRIBUTING.md`.
 This library should always compile with any combination of features (minus
 `no-std`) on **Rust 1.41.1** or **Rust 1.47** with `no-std`.
 
-To build with the MSRV you will need to pin some dependencies, currently this is
-only `syn`, and can be achieved using `cargo update -p syn --precise 1.0.107`.
+To build with the MSRV you will need to pin `serde` (if you have the feature enabled)
+
+```
+# serde 1.0.157 uses syn 2.0 which requires edition 2021
+cargo update -p serde --precise 1.0.156
+cargo update -p half --precise 1.7.1
+```
+
+## External dependencies
+
+We integrate with a few external libraries, most notably `serde`. These
+are available via feature flags. To ensure compatibility and MSRV stability we
+provide two lock files as a means of inspecting compatible versions:
+`Cargo-minimal.lock` containing minimal versions of dependencies and
+`Cargo-recent.lock` containing recent versions of dependencies tested in our CI.
+
+We do not provide any guarantees about the content of these lock files outside
+of "our CI didn't fail with these versions". Specifically, we do not guarantee
+that the committed hashes are free from malware. It is your responsibility to
+review them.
 
 ## Installing Rust
 
