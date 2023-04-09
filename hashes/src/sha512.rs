@@ -20,7 +20,7 @@
 //! SHA512 implementation.
 //!
 
-use core::{cmp, hash, str};
+use core::{cmp, str};
 use core::convert::TryInto;
 use core::ops::Index;
 use core::slice::SliceIndex;
@@ -81,6 +81,7 @@ impl crate::HashEngine for HashEngine {
 }
 
 /// Output of the SHA512 hash function.
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(transparent)]
 pub struct Hash(
@@ -95,48 +96,6 @@ impl Hash {
 
     fn internal_engine() -> HashEngine {
         Default::default()
-    }
-}
-
-impl Copy for Hash {}
-
-impl Clone for Hash {
-    fn clone(&self) -> Hash {
-        let mut ret = [0; 64];
-        ret.copy_from_slice(&self.0);
-        Hash(ret)
-    }
-}
-
-impl PartialEq for Hash {
-    fn eq(&self, other: &Hash) -> bool {
-        self.0[..] == other.0[..]
-    }
-}
-
-impl Eq for Hash {}
-
-impl Default for Hash {
-    fn default() -> Hash {
-        Hash([0; 64])
-    }
-}
-
-impl PartialOrd for Hash {
-    fn partial_cmp(&self, other: &Hash) -> Option<cmp::Ordering> {
-        self.0.partial_cmp(&other.0)
-    }
-}
-
-impl Ord for Hash {
-    fn cmp(&self, other: &Hash) -> cmp::Ordering {
-        self.0.cmp(&other.0)
-    }
-}
-
-impl hash::Hash for Hash {
-    fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        self.0.hash(state)
     }
 }
 
