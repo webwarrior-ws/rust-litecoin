@@ -705,6 +705,16 @@ impl Decodable for Transaction {
                         })
                     }
                 }
+                8 | 9 => {
+                    let input = Vec::<TxIn>::consensus_decode(&mut d)?;
+                    let output = Vec::<TxOut>::consensus_decode(&mut d)?;
+                    Ok(Transaction {
+                        version,
+                        input,
+                        output,
+                        lock_time: Decodable::consensus_decode(d)?,
+                    })
+                }
                 // We don't support anything else
                 x => Err(encode::Error::UnsupportedSegwitFlag(x)),
             }
