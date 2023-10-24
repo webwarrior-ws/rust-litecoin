@@ -11,6 +11,7 @@ pub mod constants;
 pub mod locktime;
 pub mod opcodes;
 pub mod script;
+pub mod mimblewimble;
 pub mod transaction;
 pub mod block;
 pub mod witness;
