@@ -708,6 +708,9 @@ impl Decodable for Transaction {
                 8 | 9 => {
                     let input = Vec::<TxIn>::consensus_decode(&mut d)?;
                     let output = Vec::<TxOut>::consensus_decode(&mut d)?;
+
+                    // TODO: MimbleWimble transaction
+
                     Ok(Transaction {
                         version,
                         input,
