@@ -34,6 +34,7 @@ use hashes::hex::FromHex;
 
 use util::endian;
 use blockdata::constants::WITNESS_SCALE_FACTOR;
+use blockdata::mimblewimble;
 #[cfg(feature="bitcoinconsensus")] use blockdata::script;
 use blockdata::script::Script;
 use blockdata::witness::Witness;
@@ -709,7 +710,10 @@ impl Decodable for Transaction {
                     let input = Vec::<TxIn>::consensus_decode(&mut d)?;
                     let output = Vec::<TxOut>::consensus_decode(&mut d)?;
 
-                    // TODO: MimbleWimble transaction
+                    // MimbleWimble transaction
+                    let _mw_version = u8::consensus_decode(&mut d)?;
+                    let mw_transaction = mimblewimble::Transaction::consensus_decode(&d)?;
+                    print!("MW Tx body: {:?}", mw_transaction.body);
 
                     Ok(Transaction {
                         version,
