@@ -30,6 +30,7 @@ use crate::blockdata::witness::Witness;
 use crate::blockdata::locktime::absolute::{self, Height, Time};
 use crate::blockdata::locktime::relative;
 use crate::consensus::{encode, Decodable, Encodable};
+use crate::blockdata::mimblewimble;
 use crate::crypto::sighash::LegacySighash;
 use crate::hash_types::{Txid, Wtxid};
 use crate::VarInt;
@@ -1156,7 +1157,10 @@ impl Decodable for Transaction {
                     let input = Vec::<TxIn>::consensus_decode(r)?;
                     let output = Vec::<TxOut>::consensus_decode(r)?;
 
-                    // TODO: MimbleWimble transaction
+                    // MimbleWimble transaction
+                    let _mw_version = u8::consensus_decode(&mut d)?;
+                    let mw_transaction = mimblewimble::Transaction::consensus_decode(&d)?;
+                    print!("MW Tx body: {:?}", mw_transaction.body);
 
                     Ok(Transaction {
                         version,
