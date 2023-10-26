@@ -1158,8 +1158,8 @@ impl Decodable for Transaction {
                     let output = Vec::<TxOut>::consensus_decode(r)?;
 
                     // MimbleWimble transaction
-                    let _mw_version = u8::consensus_decode(&mut d)?;
-                    let mw_transaction = mimblewimble::Transaction::consensus_decode(&d)?;
+                    let _mw_version = u8::consensus_decode(r)?;
+                    let mw_transaction = mimblewimble::Transaction::consensus_decode(r)?;
                     print!("MW Tx body: {:?}", mw_transaction.body);
 
                     Ok(Transaction {
