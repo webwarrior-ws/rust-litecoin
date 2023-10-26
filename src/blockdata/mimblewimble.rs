@@ -1,11 +1,10 @@
 // MimbleWimble transaction.
 // Only parts that are needed for identifying outputs are implemented.
-
+#![allow(missing_docs)]
 
 use io;
 
 use consensus::{encode, Decodable};
-use impl_vec;
 use secp256k1::PublicKey;
 use Script;
 use VarInt;
@@ -56,7 +55,7 @@ fn skip<D: io::Read>(stream: D, num_bytes: u64) -> () {
     io::copy(&mut stream.take(num_bytes), &mut io::sink()).expect("read error");
 }
 
-fn skip_amount<D: io::Read>(stream: D) {
+fn skip_amount<D: io::Read>(mut stream: D) {
     for _ in 0..10 {
         if (u8::consensus_decode(&mut stream).expect("read error") & 0x80) == 0 {
             break;
@@ -64,12 +63,10 @@ fn skip_amount<D: io::Read>(stream: D) {
     }
 }
 
-fn skip_array<D: io::Read, F>(mut stream: D, read_func: F) where F: FnMut(D) -> () {
-    let len = VarInt::consensus_decode(&mut stream).expect("read error").0;
-    for _ in 0..len {
-        read_func(stream);
-    }
+fn read_array_len<D: io::Read>(mut stream: D) -> u64 {
+    return VarInt::consensus_decode(&mut stream).expect("read error").0;
 }
+
 
 fn skip_input<D: io::Read>(mut stream: D) -> () {
     let features = u8::consensus_decode(&mut stream).expect("read error");
@@ -81,7 +78,8 @@ fn skip_input<D: io::Read>(mut stream: D) -> () {
     }
     if features & 2 != 0 {
     	// extra data
-    	skip_array(&mut stream, | d | skip(d, 1));
+    	let len = read_array_len(&mut stream);
+    	skip(&mut stream, len);
     }
     skip(&mut stream, 64); // signature
 }
@@ -105,13 +103,23 @@ fn skip_kernel<D: io::Read>(mut stream: D) -> () {
         skip(&mut stream, 33);
     }
     if features & 32 != 0 { // extra data
-        skip_array(&mut stream, | d | skip(d, 1));
+        let len = read_array_len(&mut stream);
+        skip(&mut stream, len);
     }
     skip(&mut stream, 33); // excess
     skip(&mut stream, 64); // signature
 }
 
-impl_vec!(Output);
+impl Decodable for Vec<Output> {
+    fn consensus_decode<D: io::Read>(mut d: D) -> Result<Self, encode::Error> {
+        let len = VarInt::consensus_decode(&mut d)?.0;
+        let mut ret = Vec::with_capacity(len as usize);
+        for _ in 0..len {
+            ret.push(Decodable::consensus_decode(&mut d)?);
+        }
+        Ok(ret)
+    }
+}
 
 impl Decodable for Transaction {
     fn consensus_decode<D: io::Read>(mut d: D) -> Result<Self, encode::Error> {
@@ -122,9 +130,15 @@ impl Decodable for Transaction {
 
 impl Decodable for TxBody {
     fn consensus_decode<D: io::Read>(mut d: D) -> Result<Self, encode::Error> {
-        skip_array(&mut d, skip_input);
-        let outputs = Vec::<Output>::consensus_decode(d)?;
-        skip_array(&mut d, skip_kernel);
+        let n_inputs = read_array_len(&mut d);
+        for _ in 0..n_inputs {
+            skip_input(&mut d);
+        }
+        let outputs = Vec::<Output>::consensus_decode(&mut d)?;
+        let n_kernels = read_array_len(&mut d);
+        for _ in 0..n_kernels {
+            skip_kernel(&mut d);
+        }
         return Ok(TxBody{outputs});
     }
 }
@@ -134,7 +148,7 @@ impl Decodable for Output {
         skip(&mut d, 33); // commitment
         skip(&mut d, 33); // sender pub key
         let pubkey_bytes : [u8; 33] = Decodable::consensus_decode(&mut d)?;
-        let receiver_public_key = PublicKey::from_slice(&pubkey_bytes)?;
+        let receiver_public_key = PublicKey::from_slice(&pubkey_bytes).unwrap();
         let message = OutputMessage::consensus_decode(&mut d)?;
         skip(&mut d, 675); // range proof
         skip(&mut d, 64); // signature
@@ -148,7 +162,7 @@ impl Decodable for OutputMessage {
         let standard_fields =
             if features & (OutputFeatures::StandardFieldsFeatureBit as u8) != 0 {
                 let pubkey_bytes : [u8; 33] = Decodable::consensus_decode(&mut d)?;
-                let key_exchange_pubkey = PublicKey::from_slice(&pubkey_bytes)?;
+                let key_exchange_pubkey = PublicKey::from_slice(&pubkey_bytes).unwrap();
                 let view_tag = u8::consensus_decode(&mut d)?;
                 let masked_value = u64::consensus_decode(&mut d)?;
                 let masked_nonce: [u8; 16] = Decodable::consensus_decode(&mut d)?;
@@ -162,7 +176,8 @@ impl Decodable for OutputMessage {
                 None
             };
         if features & (OutputFeatures::ExtraDataFeatureBit as u8) != 0 {
-            skip_array(&mut d, | d2 | { skip(d2, 1) })
+            let len = read_array_len(&mut d);
+            skip(&mut d, len);
         }
         return Ok(OutputMessage{features, standard_fields});
     }

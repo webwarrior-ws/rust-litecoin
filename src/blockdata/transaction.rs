@@ -712,7 +712,7 @@ impl Decodable for Transaction {
 
                     // MimbleWimble transaction
                     let _mw_version = u8::consensus_decode(&mut d)?;
-                    let mw_transaction = mimblewimble::Transaction::consensus_decode(&d)?;
+                    let mw_transaction = mimblewimble::Transaction::consensus_decode(&mut d)?;
                     print!("MW Tx body: {:?}", mw_transaction.body);
 
                     Ok(Transaction {

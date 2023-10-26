@@ -543,7 +543,6 @@ impl Encodable for [u16; 8] {
 }
 
 // Vectors
-#[macro_export]
 macro_rules! impl_vec {
     ($type: ty) => {
         impl Encodable for Vec<$type> {
