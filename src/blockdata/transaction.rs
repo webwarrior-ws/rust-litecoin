@@ -278,6 +278,8 @@ pub struct Transaction {
     pub input: Vec<TxIn>,
     /// List of transaction outputs.
     pub output: Vec<TxOut>,
+    /// (optional) MimbleWimble transaction.
+    pub mw_tx: Option<mimblewimble::Transaction>
 }
 
 impl Transaction {
@@ -290,6 +292,7 @@ impl Transaction {
             lock_time: self.lock_time,
             input: self.input.iter().map(|txin| TxIn { script_sig: Script::new(), witness: Witness::default(), .. *txin }).collect(),
             output: self.output.clone(),
+            mw_tx: None
         };
         cloned_tx.txid().into()
     }
@@ -365,6 +368,7 @@ impl Transaction {
             lock_time: self.lock_time,
             input: vec![],
             output: vec![],
+            mw_tx: None
         };
         // Add all inputs necessary..
         if anyone_can_pay {
@@ -703,6 +707,7 @@ impl Decodable for Transaction {
                             input,
                             output,
                             lock_time: Decodable::consensus_decode(d)?,
+                            mw_tx: None
                         })
                     }
                 }
@@ -719,15 +724,13 @@ impl Decodable for Transaction {
                         else { 
                             None
                         };
-                    if mw_transaction.is_some() {
-                        print!("MW Tx: {:?}", mw_transaction);
-                    }
 
                     Ok(Transaction {
                         version,
                         input,
                         output,
                         lock_time: Decodable::consensus_decode(d)?,
+                        mw_tx: mw_transaction
                     })
                 }
                 // We don't support anything else
@@ -740,6 +743,7 @@ impl Decodable for Transaction {
                 input,
                 output: Decodable::consensus_decode(&mut d)?,
                 lock_time: Decodable::consensus_decode(d)?,
+                mw_tx: None
             })
         }
     }
@@ -1245,6 +1249,7 @@ mod tests {
             lock_time: 0,
             input: input,
             output: output,   // TODO: Use Vec::from([TxOut]) once we bump MSRV.
+            mw_tx: None
         };
         let script = Script::new();
         let got = tx.signature_hash(1, &script, SIGHASH_SINGLE);
