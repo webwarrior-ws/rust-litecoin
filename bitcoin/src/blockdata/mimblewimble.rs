@@ -44,6 +44,7 @@ pub struct TxBody {
     // skip kernels
 }
 
+#[derive(Debug)]
 pub struct Transaction {
     // skip: kernel offset, stealth offset
     pub body: TxBody
