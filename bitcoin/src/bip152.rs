@@ -392,6 +392,7 @@ mod test {
                 witness: Witness::new(),
             }],
             output: vec![TxOut { value: 1, script_pubkey: ScriptBuf::new() }],
+            mw_tx: None
         }
     }
 

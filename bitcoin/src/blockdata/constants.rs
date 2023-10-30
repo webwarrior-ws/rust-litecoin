@@ -76,6 +76,7 @@ fn bitcoin_genesis_tx() -> Transaction {
         lock_time: absolute::LockTime::ZERO,
         input: vec![],
         output: vec![],
+        mw_tx: None
     };
 
     // Inputs

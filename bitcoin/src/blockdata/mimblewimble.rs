@@ -12,7 +12,8 @@ pub enum OutputFeatures {
     ExtraDataFeatureBit = 0x02
 }
 
-#[derive(Debug)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct OutputMessageStandardFields {
     pub key_exchange_pubkey: PublicKey,
     pub view_tag: u8,
@@ -20,14 +21,16 @@ pub struct OutputMessageStandardFields {
     pub masked_nonce: [u8; 16]
 }
 
-#[derive(Debug)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct OutputMessage {
     pub features: u8,
     pub standard_fields: Option<OutputMessageStandardFields>,
     // skip extra data
 }
 
-#[derive(Debug)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Output {
     // skip commitment
     // skip sender pub key
@@ -37,14 +40,16 @@ pub struct Output {
     // skip signature
 }
 
-#[derive(Debug)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct TxBody {
     // skip inputs
     pub outputs: Vec<Output>
     // skip kernels
 }
 
-#[derive(Debug)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Transaction {
     // skip: kernel offset, stealth offset
     pub body: TxBody

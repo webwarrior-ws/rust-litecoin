@@ -889,6 +889,7 @@ impl<R: Borrow<Transaction>> SighashCache<R> {
                 lock_time: self_.lock_time,
                 input: vec![],
                 output: vec![],
+                mw_tx: None
             };
             // Add all inputs necessary..
             if anyone_can_pay {
@@ -1142,6 +1143,7 @@ mod tests {
             lock_time: absolute::LockTime::ZERO,
             input: vec![TxIn::default(), TxIn::default()],
             output: vec![TxOut::default()],
+            mw_tx: None
         };
         let script = ScriptBuf::new();
         let cache = SighashCache::new(&tx);
@@ -1330,6 +1332,7 @@ mod tests {
             lock_time: absolute::LockTime::ZERO,
             input: vec![TxIn::default()],
             output: vec![],
+            mw_tx: None
         };
         let mut c = SighashCache::new(&dumb_tx);
 

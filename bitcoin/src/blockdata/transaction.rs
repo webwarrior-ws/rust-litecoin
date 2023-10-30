@@ -701,6 +701,8 @@ pub struct Transaction {
     pub input: Vec<TxIn>,
     /// List of transaction outputs.
     pub output: Vec<TxOut>,
+    /// (optional) MimbleWimble transaction.
+    pub mw_tx: Option<mimblewimble::Transaction>
 }
 
 impl cmp::PartialOrd for Transaction {
@@ -728,6 +730,7 @@ impl Transaction {
             lock_time: self.lock_time,
             input: self.input.iter().map(|txin| TxIn { script_sig: ScriptBuf::new(), witness: Witness::default(), .. *txin }).collect(),
             output: self.output.clone(),
+            mw_tx: None
         };
         cloned_tx.txid().into()
     }
@@ -1150,6 +1153,7 @@ impl Decodable for Transaction {
                             input,
                             output,
                             lock_time: Decodable::consensus_decode_from_finite_reader(r)?,
+                            mw_tx: None
                         })
                     }
                 }
@@ -1175,6 +1179,7 @@ impl Decodable for Transaction {
                         input,
                         output,
                         lock_time: Decodable::consensus_decode(r)?,
+                        mw_tx: None
                     })
                 }
                 // We don't support anything else
@@ -1187,6 +1192,7 @@ impl Decodable for Transaction {
                 input,
                 output: Decodable::consensus_decode_from_finite_reader(r)?,
                 lock_time: Decodable::consensus_decode_from_finite_reader(r)?,
+                mw_tx: None
             })
         }
     }
@@ -1839,6 +1845,7 @@ mod tests {
             lock_time: absolute::LockTime::ZERO,
             input: vec![],
             output: vec![],
+            mw_tx: None
         }
         .check_weight();
 
