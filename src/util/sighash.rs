@@ -739,7 +739,7 @@ impl<R: DerefMut<Target=Transaction>> SighashCache<R> {
     /// use bitcoin::util::sighash::SighashCache;
     /// use bitcoin::Script;
     ///
-    /// let mut tx_to_sign = Transaction { version: 2, lock_time: 0, input: Vec::new(), output: Vec::new() };
+    /// let mut tx_to_sign = Transaction { version: 2, lock_time: 0, input: Vec::new(), output: Vec::new(), mw_tx: None, is_hog_ex: false};
     /// let input_count = tx_to_sign.input.len();
     ///
     /// let mut sig_hasher = SighashCache::new(&mut tx_to_sign);
@@ -938,7 +938,8 @@ mod tests {
             lock_time: 0,
             input: vec![TxIn::default()],
             output: vec![],
-            mw_tx: None
+            mw_tx: None,
+            is_hog_ex: false
         };
         let mut c = SighashCache::new(&dumb_tx);
 
