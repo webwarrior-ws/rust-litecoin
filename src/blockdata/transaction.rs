@@ -279,7 +279,9 @@ pub struct Transaction {
     /// List of transaction outputs.
     pub output: Vec<TxOut>,
     /// (optional) MimbleWimble transaction.
-    pub mw_tx: Option<mimblewimble::Transaction>
+    pub mw_tx: Option<mimblewimble::Transaction>,
+    /// Flag that is set to true if this is a HogEx transaction
+    pub is_hog_ex: bool
 }
 
 impl Transaction {
@@ -292,7 +294,8 @@ impl Transaction {
             lock_time: self.lock_time,
             input: self.input.iter().map(|txin| TxIn { script_sig: Script::new(), witness: Witness::default(), .. *txin }).collect(),
             output: self.output.clone(),
-            mw_tx: None
+            mw_tx: None,
+            is_hog_ex: false
         };
         cloned_tx.txid().into()
     }
@@ -368,7 +371,8 @@ impl Transaction {
             lock_time: self.lock_time,
             input: vec![],
             output: vec![],
-            mw_tx: None
+            mw_tx: None,
+            is_hog_ex: false
         };
         // Add all inputs necessary..
         if anyone_can_pay {
@@ -678,6 +682,9 @@ impl Encodable for Transaction {
                 len += input.witness.consensus_encode(&mut s)?;
             }
         }
+        if self.mw_tx.is_some() { 
+            print!("found") 
+        };
         len += self.lock_time.consensus_encode(s)?;
         Ok(len)
     }
@@ -707,7 +714,8 @@ impl Decodable for Transaction {
                             input,
                             output,
                             lock_time: Decodable::consensus_decode(d)?,
-                            mw_tx: None
+                            mw_tx: None,
+                            is_hog_ex: false
                         })
                     }
                 }
@@ -722,15 +730,18 @@ impl Decodable for Transaction {
                             Some(mimblewimble::Transaction::consensus_decode(&mut d)?)
                         }
                         else { 
+                            // HogEx transaction
                             None
                         };
+                    let is_hog_ex = mw_transaction.is_none();
 
                     Ok(Transaction {
                         version,
                         input,
                         output,
                         lock_time: Decodable::consensus_decode(d)?,
-                        mw_tx: mw_transaction
+                        mw_tx: mw_transaction,
+                        is_hog_ex: is_hog_ex
                     })
                 }
                 // We don't support anything else
@@ -743,7 +754,8 @@ impl Decodable for Transaction {
                 input,
                 output: Decodable::consensus_decode(&mut d)?,
                 lock_time: Decodable::consensus_decode(d)?,
-                mw_tx: None
+                mw_tx: None,
+                is_hog_ex: false
             })
         }
     }
@@ -1249,7 +1261,8 @@ mod tests {
             lock_time: 0,
             input: input,
             output: output,   // TODO: Use Vec::from([TxOut]) once we bump MSRV.
-            mw_tx: None
+            mw_tx: None,
+            is_hog_ex: false
         };
         let script = Script::new();
         let got = tx.signature_hash(1, &script, SIGHASH_SINGLE);

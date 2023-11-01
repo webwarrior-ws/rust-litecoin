@@ -938,7 +938,8 @@ mod tests {
             lock_time: 0,
             input: vec![TxIn::default()],
             output: vec![],
-            mw_tx: None
+            mw_tx: None,
+            is_hog_ex: false
         };
         let mut c = SighashCache::new(&dumb_tx);
 
