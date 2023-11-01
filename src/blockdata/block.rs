@@ -23,6 +23,7 @@
 use prelude::*;
 
 use core::fmt;
+use io;
 
 use util;
 use util::Error::{BlockBadTarget, BlockBadProofOfWork};
@@ -30,6 +31,7 @@ use util::hash::bitcoin_merkle_root;
 use hashes::{Hash, HashEngine};
 use hash_types::{Wtxid, BlockHash, TxMerkleNode, WitnessMerkleNode, WitnessCommitment};
 use util::uint::Uint256;
+use consensus;
 use consensus::encode::Encodable;
 use network::constants::Network;
 use blockdata::transaction::Transaction;
@@ -155,6 +157,61 @@ impl BlockHeader {
     }
 }
 
+/// MWEB Block header
+#[derive(PartialEq, Eq, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct MwebBlockHeader {
+    height: i32,
+    output_root: [u8; 32],
+    kernel_root: [u8; 32],
+    leafset_root: [u8; 32],
+    kernel_offset: [u8; 32], // blinding factor
+    stealth_offset: [u8; 32], // blinding factor
+    output_mmr_size: u64,
+    kernel_mmr_size: u64,
+}
+
+impl consensus::Decodable for MwebBlockHeader {
+    #[inline]
+    fn consensus_decode<D: io::Read>(d:D,) -> Result<MwebBlockHeader, consensus::encode::Error>{
+        let mut d = d.take( consensus::encode::MAX_VEC_SIZE as u64);
+        // not sure why, but have to skip this byte which always has value of 130
+        let _skip = u8::consensus_decode(&mut d)?;
+        Ok(MwebBlockHeader {
+            height: VarInt::consensus_decode(&mut d)?.0 as i32,
+            output_root: consensus::Decodable::consensus_decode(&mut d)?,
+            kernel_root: consensus::Decodable::consensus_decode(&mut d)?,
+            leafset_root: consensus::Decodable::consensus_decode(&mut d)?,
+            kernel_offset: consensus::Decodable::consensus_decode(&mut d)?,
+            stealth_offset: consensus::Decodable::consensus_decode(&mut d)?,
+            output_mmr_size: VarInt::consensus_decode(&mut d)?.0,
+            kernel_mmr_size: VarInt::consensus_decode(&mut d)?.0
+        })
+    }
+}
+
+/// MWEB Block
+#[derive(PartialEq, Eq, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct MwebBlock {
+    /// The block header
+    pub header: MwebBlockHeader,
+    /// MimbleWimble transaction body
+    pub tx_body: super::mimblewimble::TxBody
+}
+
+impl consensus::Decodable for MwebBlock {
+    #[inline]
+    fn consensus_decode<D: io::Read>(d:D,) -> Result<MwebBlock, consensus::encode::Error>{
+        let mut d = d.take( consensus::encode::MAX_VEC_SIZE as u64);
+        let header = consensus::Decodable::consensus_decode(&mut d)?;
+        Ok(MwebBlock {
+            header: header,
+            tx_body: super::mimblewimble::TxBody::consensus_decode(&mut d)?
+        })
+    }
+}
+
 /// A Bitcoin block, which is a collection of transactions with an attached
 /// proof of work.
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -163,10 +220,58 @@ pub struct Block {
     /// The block header
     pub header: BlockHeader,
     /// List of transactions contained in the block
-    pub txdata: Vec<Transaction>
+    pub txdata: Vec<Transaction>,
+    /// Optional MWEB block
+    pub mweb_block: Option<MwebBlock>
 }
 
-impl_consensus_encoding!(Block, header, txdata);
+
+impl consensus::Encodable for Block {
+    fn consensus_encode<S: io::Write>(&self,mut s:S,) -> Result<usize, io::Error> {
+        let mut len = 0;
+        len += self.header.consensus_encode(&mut s)?;
+        len += self.txdata.consensus_encode(&mut s)?;
+        if self.txdata.len() >= 2 {
+            match self.mweb_block {
+                Some(ref _mweb_block) => {
+                    // do nothing for now as encoding is not implemented for MW types
+                    //len += mweb_block.consensus_encode(&mut s)?;
+                }
+                None => {}
+            }
+        }
+        Ok(len)
+    }
+}
+impl consensus::Decodable for Block {
+    fn consensus_decode<D: io::Read>(d:D,) -> Result<Block, consensus::encode::Error>{
+        let mut d = d.take(consensus::encode::MAX_VEC_SIZE as u64);
+        let header = BlockHeader::consensus_decode(&mut d)?;
+        let txdata = Vec::<Transaction>::consensus_decode(&mut d)?;
+        let mweb_block =
+            if txdata.len() >= 2 {
+                match txdata.last() {
+                    Some(tx) if tx.is_hog_ex => {
+                        if u8::consensus_decode(&mut d)? == 1 {
+                            Some(MwebBlock::consensus_decode(&mut d)?)
+                        }
+                        else {
+                            None
+                        }
+                    }
+                    _ => { None }
+                }
+            }
+            else {
+                None
+            };
+        Ok(Block {
+            header: header, 
+            txdata: txdata,
+            mweb_block: mweb_block
+        })
+    }
+}
 
 impl Block {
     /// Returns the block hash.

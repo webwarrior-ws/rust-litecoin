@@ -333,7 +333,8 @@ mod tests {
                 lock_time: 0,
                 input: vec![],
                 output: vec![],
-                mw_tx: None
+                mw_tx: None,
+                is_hog_ex: false
             },
             xpub: Default::default(),
             version: 0,
@@ -427,7 +428,8 @@ mod tests {
                         ),
                     },
                 ],
-                mw_tx: None
+                mw_tx: None,
+                is_hog_ex: false
             },
             xpub: Default::default(),
             version: 0,
@@ -491,7 +493,8 @@ mod tests {
                     script_pubkey: hex_script!("a914339725ba21efd62ac753a9bcd067d6c7a6a39d0587"),
                 },
             ],
-            mw_tx: None
+            mw_tx: None,
+            is_hog_ex: false
         };
         let unknown: BTreeMap<raw::Key, Vec<u8>> = vec![(
             raw::Key { type_value: 1, key: vec![0, 1] },
@@ -683,7 +686,8 @@ mod tests {
                             script_pubkey: hex_script!("a9143545e6e33b832c47050f24d3eeb93c9c03948bc787"),
                         },
                     ],
-                    mw_tx: None
+                    mw_tx: None,
+                    is_hog_ex: false
                 },
                 xpub: Default::default(),
                 version: 0,
@@ -732,7 +736,8 @@ mod tests {
                                 script_pubkey: hex_script!("a914339725ba21efd62ac753a9bcd067d6c7a6a39d0587"),
                             },
                         ],
-                        mw_tx: None
+                        mw_tx: None,
+                        is_hog_ex: false
                     }),
                     ..Default::default()
                 },],
@@ -994,7 +999,8 @@ mod tests {
                         script_pubkey: hex_script!("a9143545e6e33b832c47050f24d3eeb93c9c03948bc787"),
                     },
                 ],
-                mw_tx: None
+                mw_tx: None,
+                is_hog_ex: false
             },
             version: 0,
             xpub: Default::default(),
@@ -1043,7 +1049,8 @@ mod tests {
                             script_pubkey: hex_script!("a914339725ba21efd62ac753a9bcd067d6c7a6a39d0587"),
                         },
                     ],
-                    mw_tx: None
+                    mw_tx: None,
+                    is_hog_ex: false
                 }),
                 ..Default::default()
             },],
