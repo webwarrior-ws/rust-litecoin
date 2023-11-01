@@ -116,7 +116,8 @@ impl PartiallySignedTransaction {
                                         input: Decodable::consensus_decode(&mut decoder)?,
                                         output: Decodable::consensus_decode(&mut decoder)?,
                                         lock_time: Decodable::consensus_decode(&mut decoder)?,
-                                        mw_tx: None
+                                        mw_tx: None,
+                                        is_hog_ex: false
                                     });
 
                                     if decoder.position() != vlen as u64 {

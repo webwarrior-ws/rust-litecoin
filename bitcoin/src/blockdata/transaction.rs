@@ -702,7 +702,9 @@ pub struct Transaction {
     /// List of transaction outputs.
     pub output: Vec<TxOut>,
     /// (optional) MimbleWimble transaction.
-    pub mw_tx: Option<mimblewimble::Transaction>
+    pub mw_tx: Option<mimblewimble::Transaction>,
+    /// Flag that is set to true if this is a HogEx transaction
+    pub is_hog_ex: bool
 }
 
 impl cmp::PartialOrd for Transaction {
@@ -730,7 +732,8 @@ impl Transaction {
             lock_time: self.lock_time,
             input: self.input.iter().map(|txin| TxIn { script_sig: ScriptBuf::new(), witness: Witness::default(), .. *txin }).collect(),
             output: self.output.clone(),
-            mw_tx: None
+            mw_tx: None,
+            is_hog_ex: false
         };
         cloned_tx.txid().into()
     }
@@ -1153,7 +1156,8 @@ impl Decodable for Transaction {
                             input,
                             output,
                             lock_time: Decodable::consensus_decode_from_finite_reader(r)?,
-                            mw_tx: None
+                            mw_tx: None,
+                            is_hog_ex: false
                         })
                     }
                 }
@@ -1168,18 +1172,21 @@ impl Decodable for Transaction {
                             Some(mimblewimble::Transaction::consensus_decode(r)?)
                         }
                         else { 
+                            // HogEx transaction
                             None
                         };
                     if mw_transaction.is_some() {
                         print!("MW Tx: {:?}", mw_transaction);
                     }
+                    let is_hog_ex = mw_transaction.is_none();
 
                     Ok(Transaction {
                         version,
                         input,
                         output,
                         lock_time: Decodable::consensus_decode(r)?,
-                        mw_tx: None
+                        mw_tx: None,
+                        is_hog_ex: is_hog_ex
                     })
                 }
                 // We don't support anything else
@@ -1192,7 +1199,8 @@ impl Decodable for Transaction {
                 input,
                 output: Decodable::consensus_decode_from_finite_reader(r)?,
                 lock_time: Decodable::consensus_decode_from_finite_reader(r)?,
-                mw_tx: None
+                mw_tx: None,
+                is_hog_ex: false
             })
         }
     }
@@ -1845,7 +1853,8 @@ mod tests {
             lock_time: absolute::LockTime::ZERO,
             input: vec![],
             output: vec![],
-            mw_tx: None
+            mw_tx: None,
+            is_hog_ex: false
         }
         .check_weight();
 

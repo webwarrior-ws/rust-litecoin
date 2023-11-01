@@ -830,7 +830,8 @@ mod tests {
                 lock_time: absolute::LockTime::ZERO,
                 input: vec![],
                 output: vec![],
-                mw_tx: None
+                mw_tx: None,
+                is_hog_ex: false
             },
             xpub: Default::default(),
             version: 0,
@@ -920,7 +921,8 @@ mod tests {
                         script_pubkey: ScriptBuf::from_hex("a9143545e6e33b832c47050f24d3eeb93c9c03948bc787").unwrap(),
                     },
                 ],
-                mw_tx: None
+                mw_tx: None,
+                is_hog_ex: false
             },
             xpub: Default::default(),
             version: 0,
@@ -984,7 +986,8 @@ mod tests {
                     script_pubkey: ScriptBuf::from_hex("a914339725ba21efd62ac753a9bcd067d6c7a6a39d0587").unwrap(),
                 },
             ],
-            mw_tx: None
+            mw_tx: None,
+            is_hog_ex: false
         };
         let unknown: BTreeMap<raw::Key, Vec<u8>> = vec![(
             raw::Key { type_value: 1, key: vec![0, 1] },
@@ -1179,7 +1182,8 @@ mod tests {
                             script_pubkey: ScriptBuf::from_hex("a9143545e6e33b832c47050f24d3eeb93c9c03948bc787").unwrap(),
                         },
                     ],
-                    mw_tx: None
+                    mw_tx: None,
+                    is_hog_ex: false
                 },
                 xpub: Default::default(),
                 version: 0,
@@ -1227,7 +1231,8 @@ mod tests {
                                     script_pubkey: ScriptBuf::from_hex("a914339725ba21efd62ac753a9bcd067d6c7a6a39d0587").unwrap(),
                                 },
                             ],
-                        mw_tx: None
+                        mw_tx: None,
+                        is_hog_ex: false
                         }),
                         ..Default::default()
                     },
@@ -1501,7 +1506,8 @@ mod tests {
                         script_pubkey: ScriptBuf::from_hex("a9143545e6e33b832c47050f24d3eeb93c9c03948bc787").unwrap(),
                     },
                 ],
-                mw_tx: None
+                mw_tx: None,
+                is_hog_ex: false
             },
             version: 0,
             xpub: Default::default(),
@@ -1549,7 +1555,8 @@ mod tests {
                                 script_pubkey: ScriptBuf::from_hex("a914339725ba21efd62ac753a9bcd067d6c7a6a39d0587").unwrap(),
                             },
                         ],
-                    mw_tx: None
+                    mw_tx: None,
+                    is_hog_ex: false
                     }),
                     ..Default::default()
                 },
@@ -1672,7 +1679,8 @@ mod tests {
                         ..Default::default()
                     },
                 ],
-                mw_tx: None
+                mw_tx: None,
+                is_hog_ex: false
             },
             xpub: Default::default(),
             version: 0,
@@ -1712,7 +1720,8 @@ mod tests {
                                 ..Default::default()
                             },
                         ],
-                        mw_tx: None
+                        mw_tx: None,
+                        is_hog_ex: false
                     }),
                     ..Default::default()
                 },

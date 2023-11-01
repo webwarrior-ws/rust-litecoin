@@ -392,7 +392,8 @@ mod test {
                 witness: Witness::new(),
             }],
             output: vec![TxOut { value: 1, script_pubkey: ScriptBuf::new() }],
-            mw_tx: None
+            mw_tx: None,
+            is_hog_ex: false
         }
     }
 
@@ -407,6 +408,7 @@ mod test {
                 nonce: 4,
             },
             txdata: vec![dummy_tx(&[2]), dummy_tx(&[3]), dummy_tx(&[4])],
+            mweb_block: None,
         }
     }
 

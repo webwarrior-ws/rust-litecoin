@@ -76,7 +76,8 @@ fn bitcoin_genesis_tx() -> Transaction {
         lock_time: absolute::LockTime::ZERO,
         input: vec![],
         output: vec![],
-        mw_tx: None
+        mw_tx: None,
+        is_hog_ex: false
     };
 
     // Inputs
@@ -123,6 +124,7 @@ pub fn genesis_block(network: Network) -> Block {
                     nonce: 2084524493
                 },
                 txdata,
+                mweb_block: None
             }
         }
         Network::Testnet => {
@@ -136,6 +138,7 @@ pub fn genesis_block(network: Network) -> Block {
                     nonce: 293345
                 },
                 txdata,
+                mweb_block: None
             }
         }
         Network::Signet => {
@@ -149,6 +152,7 @@ pub fn genesis_block(network: Network) -> Block {
                     nonce: 52613770
                 },
                 txdata,
+                mweb_block: None
             }
         }
         Network::Regtest => {
@@ -162,6 +166,7 @@ pub fn genesis_block(network: Network) -> Block {
                     nonce: 2
                 },
                 txdata,
+                mweb_block: None
             }
         }
     }

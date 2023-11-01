@@ -17,6 +17,7 @@ use crate::merkle_tree;
 use crate::error::Error::{self, BlockBadTarget, BlockBadProofOfWork};
 use crate::hashes::{Hash, HashEngine};
 use crate::hash_types::{Wtxid, TxMerkleNode, WitnessMerkleNode, WitnessCommitment};
+use crate::consensus;
 use crate::consensus::{encode, Encodable, Decodable};
 use crate::blockdata::transaction::Transaction;
 use crate::blockdata::script;
@@ -184,6 +185,57 @@ impl Decodable for Version {
     }
 }
 
+/// MWEB Block header
+#[derive(PartialEq, Eq, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct MwebBlockHeader {
+    height: i32,
+    output_root: [u8; 32],
+    kernel_root: [u8; 32],
+	leafset_root: [u8; 32],
+    kernel_offset: [u8; 32], // blinding factor
+    stealth_offset: [u8; 32], // blinding factor
+    output_mmr_size: u64,
+    kernel_mmr_size: u64,
+}
+
+impl consensus::Decodable for MwebBlockHeader {
+    #[inline]
+    fn consensus_decode<D: io::Read + ?Sized>(d:&mut D) -> Result<MwebBlockHeader, consensus::encode::Error>{
+        Ok(MwebBlockHeader {
+            height: VarInt::consensus_decode(d)?.0 as i32,
+            output_root: consensus::Decodable::consensus_decode(d)?,
+            kernel_root: consensus::Decodable::consensus_decode(d)?,
+            leafset_root: consensus::Decodable::consensus_decode(d)?,
+            kernel_offset: consensus::Decodable::consensus_decode(d)?,
+            stealth_offset: consensus::Decodable::consensus_decode(d)?,
+            output_mmr_size: VarInt::consensus_decode(d)?.0,
+            kernel_mmr_size: VarInt::consensus_decode(d)?.0
+        })
+    }
+}
+
+/// MWEB Block
+#[derive(PartialEq, Eq, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct MwebBlock {
+    /// The block header
+    pub header: MwebBlockHeader,
+    /// MimbleWimble transaction body
+    pub tx_body: super::mimblewimble::TxBody
+}
+
+impl consensus::Decodable for MwebBlock {
+    #[inline]
+    fn consensus_decode<D: io::Read + ?Sized>(d:&mut D) -> Result<MwebBlock, consensus::encode::Error>{
+        let header = consensus::Decodable::consensus_decode(d)?;
+        Ok(MwebBlock {
+            header: header,
+            tx_body: super::mimblewimble::TxBody::consensus_decode(d)?
+        })
+    }
+}
+
 /// Bitcoin block.
 ///
 /// A collection of transactions with an attached proof of work.
@@ -202,10 +254,56 @@ pub struct Block {
     /// The block header
     pub header: Header,
     /// List of transactions contained in the block
-    pub txdata: Vec<Transaction>
+    pub txdata: Vec<Transaction>,
+    /// Optional MWEB block
+    pub mweb_block: Option<MwebBlock>
 }
 
-impl_consensus_encoding!(Block, header, txdata);
+impl consensus::Encodable for Block {
+    fn consensus_encode<S: io::Write + ?Sized>(&self,s: &mut S) -> Result<usize, io::Error> {
+        let mut len = 0;
+        len += self.header.consensus_encode(s)?;
+        len += self.txdata.consensus_encode(s)?;
+        if self.txdata.len() >= 2 {
+            match self.mweb_block {
+                Some(ref _mweb_block) => {
+                    // do nothing for now as encoding is not implemented for MW types
+                    //len += mweb_block.consensus_encode(s)?;
+                }
+                None => {}
+            }
+        }
+        Ok(len)
+    }
+}
+impl consensus::Decodable for Block {
+    fn consensus_decode<D: io::Read + ?Sized>(d:&mut D) -> Result<Block, consensus::encode::Error> {
+        let header = Header::consensus_decode(d)?;
+        let txdata = Vec::<Transaction>::consensus_decode(d)?;
+        let mweb_block =
+            if txdata.len() >= 2 {
+                match txdata.last() {
+                    Some(tx) if tx.is_hog_ex => {
+                        if u8::consensus_decode(d)? != 0 {
+                            Some(MwebBlock::consensus_decode(d)?)
+                        }
+                        else {
+                            None
+                        }
+                    }
+                    _ => { None }
+                }
+            }
+            else {
+                None
+            };
+        Ok(Block {
+            header: header, 
+            txdata: txdata,
+            mweb_block: mweb_block
+        })
+    }
+}
 
 impl Block {
     /// Returns the block hash.
