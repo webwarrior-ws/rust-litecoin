@@ -175,6 +175,8 @@ impl consensus::Decodable for MwebBlockHeader {
     #[inline]
     fn consensus_decode<D: io::Read>(d:D,) -> Result<MwebBlockHeader, consensus::encode::Error>{
         let mut d = d.take( consensus::encode::MAX_VEC_SIZE as u64);
+        // not sure why, but have to skip this byte which always has value of 130
+        let _skip = u8::consensus_decode(&mut d)?;
         Ok(MwebBlockHeader {
             height: VarInt::consensus_decode(&mut d)?.0 as i32,
             output_root: consensus::Decodable::consensus_decode(&mut d)?,
@@ -223,7 +225,6 @@ pub struct Block {
     pub mweb_block: Option<MwebBlock>
 }
 
-//const SERIALIZE_NO_MWEB: i32 = 0x20000000;
 
 impl consensus::Encodable for Block {
     fn consensus_encode<S: io::Write>(&self,mut s:S,) -> Result<usize, io::Error> {
@@ -251,7 +252,7 @@ impl consensus::Decodable for Block {
             if txdata.len() >= 2 {
                 match txdata.last() {
                     Some(tx) if tx.is_hog_ex => {
-                        if u8::consensus_decode(&mut d)? != 0 {
+                        if u8::consensus_decode(&mut d)? == 1 {
                             Some(MwebBlock::consensus_decode(&mut d)?)
                         }
                         else {
