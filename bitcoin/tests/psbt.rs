@@ -201,7 +201,8 @@ fn create_transaction() -> Transaction {
                     .expect("failed to parse script"),
             },
         ],
-        mw_tx: None
+        mw_tx: None,
+        is_hog_ex: false
     }
 }
 

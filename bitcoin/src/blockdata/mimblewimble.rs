@@ -1,10 +1,12 @@
 // MimbleWimble transaction.
 // Only parts that are needed for identifying outputs are implemented.
 #![allow(missing_docs)]
-use std::io;
+
+use crate::prelude::*;
+use crate::io;
 
 use crate::{consensus::{encode, Decodable}, VarInt};
-use secp256k1::PublicKey;
+use secp256k1::{PublicKey, schnorr::Signature};
 use crate::blockdata::script::ScriptBuf;
 
 pub enum OutputFeatures {
@@ -32,12 +34,14 @@ pub struct OutputMessage {
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Output {
-    // skip commitment
-    // skip sender pub key
+    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    pub commitment: [u8; 33],
+    pub sender_public_key: PublicKey,
     pub receiver_public_key: PublicKey,
     pub message: OutputMessage,
-    // skip range proof
-    // skip signature
+    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    pub range_proof: [u8; 675],
+    pub signature: Signature
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -149,14 +153,25 @@ impl Decodable for TxBody {
 
 impl Decodable for Output {
     fn consensus_decode<D: io::Read + ?Sized>(d: &mut D) -> Result<Self, encode::Error> {
-        skip(d, 33); // commitment
-        skip(d, 33); // sender pub key
-        let pubkey_bytes : [u8; 33] = Decodable::consensus_decode(d)?;
-        let receiver_public_key = PublicKey::from_slice(&pubkey_bytes).unwrap();
+        let commitment = Decodable::consensus_decode(d)?;
+        let sender_pubkey_bytes : [u8; 33] = Decodable::consensus_decode(d)?;
+        let sender_public_key = PublicKey::from_slice(&sender_pubkey_bytes).unwrap();
+        let receiver_pubkey_bytes : [u8; 33] = Decodable::consensus_decode(d)?;
+        let receiver_public_key = PublicKey::from_slice(&receiver_pubkey_bytes).unwrap();
         let message = OutputMessage::consensus_decode(d)?;
-        skip(d, 675); // range proof
-        skip(d, 64); // signature
-        return Ok(Output { receiver_public_key, message });
+        let range_proof : [u8;  675] = Decodable::consensus_decode(d)?;
+        let signature_bytes: [u8; 64] = Decodable::consensus_decode(d)?;
+        let signature =  Signature::from_slice(&signature_bytes).unwrap();
+        return Ok(
+            Output { 
+                commitment, 
+                sender_public_key, 
+                receiver_public_key, 
+                message, 
+                range_proof,
+                signature 
+            }
+        );
     }
 }
 
