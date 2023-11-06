@@ -5,7 +5,7 @@
 use io;
 
 use consensus::{encode, Decodable};
-use secp256k1::PublicKey;
+use secp256k1::{PublicKey, schnorr::Signature};
 use Script;
 use VarInt;
 
@@ -34,12 +34,14 @@ pub struct OutputMessage {
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Output {
-    // skip commitment
-    // skip sender pub key
+    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    pub commitment: [u8; 33],
+    pub sender_public_key: PublicKey,
     pub receiver_public_key: PublicKey,
     pub message: OutputMessage,
-    // skip range proof
-    // skip signature
+    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    pub range_proof: [u8; 675],
+    pub signature: Signature
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -151,14 +153,25 @@ impl Decodable for TxBody {
 
 impl Decodable for Output {
     fn consensus_decode<D: io::Read>(mut d: D) -> Result<Self, encode::Error> {
-        skip(&mut d, 33); // commitment
-        skip(&mut d, 33); // sender pub key
-        let pubkey_bytes : [u8; 33] = Decodable::consensus_decode(&mut d)?;
-        let receiver_public_key = PublicKey::from_slice(&pubkey_bytes).unwrap();
+        let commitment = Decodable::consensus_decode(&mut d)?;
+        let sender_pubkey_bytes : [u8; 33] = Decodable::consensus_decode(&mut d)?;
+        let sender_public_key = PublicKey::from_slice(&sender_pubkey_bytes).unwrap();
+        let receiver_pubkey_bytes : [u8; 33] = Decodable::consensus_decode(&mut d)?;
+        let receiver_public_key = PublicKey::from_slice(&receiver_pubkey_bytes).unwrap();
         let message = OutputMessage::consensus_decode(&mut d)?;
-        skip(&mut d, 675); // range proof
-        skip(&mut d, 64); // signature
-        return Ok(Output { receiver_public_key, message });
+        let range_proof : [u8;  675] = Decodable::consensus_decode(&mut d)?;
+        let signature_bytes: [u8; 64] = Decodable::consensus_decode(&mut d)?;
+        let signature =  Signature::from_slice(&signature_bytes).unwrap();
+        return Ok(
+            Output { 
+                commitment, 
+                sender_public_key, 
+                receiver_public_key, 
+                message, 
+                range_proof,
+                signature 
+            }
+        );
     }
 }
 
