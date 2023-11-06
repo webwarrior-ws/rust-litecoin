@@ -5,9 +5,10 @@
 use crate::prelude::*;
 use crate::io;
 
-use crate::{consensus::{encode, Decodable}, VarInt};
-use secp256k1::{PublicKey, schnorr::Signature};
+use crate::consensus::{encode, Decodable, Encodable};
+use secp256k1::PublicKey;
 use crate::blockdata::script::ScriptBuf;
+use crate::VarInt;
 
 pub enum OutputFeatures {
     StandardFieldsFeatureBit = 0x01,
@@ -28,7 +29,7 @@ pub struct OutputMessageStandardFields {
 pub struct OutputMessage {
     pub features: u8,
     pub standard_fields: Option<OutputMessageStandardFields>,
-    // skip extra data
+    pub extra_data: Vec<u8>,
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -41,7 +42,8 @@ pub struct Output {
     pub message: OutputMessage,
     #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
     pub range_proof: [u8; 675],
-    pub signature: Signature
+    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    pub signature: [u8; 64],
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -160,8 +162,7 @@ impl Decodable for Output {
         let receiver_public_key = PublicKey::from_slice(&receiver_pubkey_bytes).unwrap();
         let message = OutputMessage::consensus_decode(d)?;
         let range_proof : [u8;  675] = Decodable::consensus_decode(d)?;
-        let signature_bytes: [u8; 64] = Decodable::consensus_decode(d)?;
-        let signature =  Signature::from_slice(&signature_bytes).unwrap();
+        let signature: [u8; 64] = Decodable::consensus_decode(d)?;
         return Ok(
             Output { 
                 commitment, 
@@ -194,10 +195,31 @@ impl Decodable for OutputMessage {
             } else {
                 None
             };
-        if features & (OutputFeatures::ExtraDataFeatureBit as u8) != 0 {
-            let len = read_array_len(d);
-            skip(d, len);
+        let extra_data: Vec<u8> =
+            if features & (OutputFeatures::ExtraDataFeatureBit as u8) != 0 {
+                Decodable::consensus_decode(d)?
+            }
+            else {
+                vec! []
+            };
+        return Ok(OutputMessage{features, standard_fields, extra_data});
+    }
+}
+
+impl Encodable for OutputMessage {
+    fn consensus_encode<W: io::Write + ?Sized>(&self, writer: &mut W) -> Result<usize, io::Error> {
+        let mut len = 0;
+        len += self.features.consensus_encode(writer)?;
+        match self.standard_fields {
+            Some(ref fields) => {
+                len += fields.key_exchange_pubkey.serialize().consensus_encode(writer)?;
+                len += fields.view_tag.consensus_encode(writer)?;
+                len += fields.masked_value.consensus_encode(writer)?;
+                len += fields.masked_nonce.consensus_encode(writer)?;
+            }
+            None => {}
         }
-        return Ok(OutputMessage{features, standard_fields});
+        len += self.extra_data.consensus_encode(writer)?;
+        return Ok(len);
     }
 }
