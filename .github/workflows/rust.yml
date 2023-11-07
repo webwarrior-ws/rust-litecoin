@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout Crate
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Checkout Toolchain
         # https://github.com/dtolnay/rust-toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -32,7 +32,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout Crate
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Checkout Toolchain
         uses: dtolnay/rust-toolchain@beta
       - name: Running test script
@@ -48,7 +48,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout Crate
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Checkout Toolchain
         uses: dtolnay/rust-toolchain@nightly
       - name: Running test script
@@ -61,32 +61,20 @@ jobs:
         run: ./contrib/test.sh
 
   MSRV:
-    name: Test - 1.41.1 toolchain
+    name: Test - 1.48.0 toolchain
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
     steps:
       - name: Checkout Crate
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Checkout Toolchain
-        uses: dtolnay/rust-toolchain@1.41.1
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.48.0"
       - name: Running test script
         env:
           DO_FEATURE_MATRIX: true
-        run: ./contrib/test.sh
-
-  NoStd:
-    name: Test - 1.47 toolchain
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-    steps:
-      - name: Checkout Crate
-        uses: actions/checkout@v3
-      - name: Checkout Toolchain
-        uses: dtolnay/rust-toolchain@1.47
-      - name: Running test script
-        env:
           DO_NO_STD: true
         run: ./contrib/test.sh
 
@@ -95,7 +83,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Crate
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Checkout Toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Add architecture i386
@@ -113,7 +101,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Crate
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Checkout Toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Install target
@@ -130,7 +118,7 @@ jobs:
       CARGO_TARGET_THUMBV7M_NONE_EABI_RUNNER: "qemu-system-arm -cpu cortex-m3 -machine mps2-an385 -nographic -semihosting-config enable=on,target=native -kernel"
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up QEMU
         run: sudo apt update && sudo apt install -y qemu-system-arm gcc-arm-none-eabi
       - name: Checkout Toolchain
@@ -151,7 +139,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Crate
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Checkout Toolchain
         uses: dtolnay/rust-toolchain@nightly
       - name: Install src
@@ -166,7 +154,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Crate
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Checkout Toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Running WASM build
