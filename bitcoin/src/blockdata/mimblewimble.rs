@@ -131,6 +131,17 @@ impl Decodable for Vec<Output> {
     }
 }
 
+impl Encodable for Vec<Output> {
+    fn consensus_encode<W: io::Write + ?Sized>(&self, writer: &mut W) -> Result<usize, io::Error> {
+        let mut len = 0;
+        len += VarInt(self.len() as u64).consensus_encode(writer)?;
+        for output in self {
+            len += output.consensus_encode(writer)?;
+        }
+        return Ok(len);
+    }
+}
+
 impl Decodable for Transaction {
     fn consensus_decode<D: io::Read + ?Sized>(d: &mut D) -> Result<Self, encode::Error> {
         skip(d,2 * 32);
@@ -150,6 +161,19 @@ impl Decodable for TxBody {
             skip_kernel(d);
         }
         return Ok(TxBody{outputs});
+    }
+}
+
+impl Encodable for Output {
+    fn consensus_encode<W: io::Write + ?Sized>(&self, writer: &mut W) -> Result<usize, io::Error> {
+        let mut len = 0;
+        len += self.commitment.consensus_encode(writer)?;
+        len += self.sender_public_key.serialize().consensus_encode(writer)?;
+        len += self.receiver_public_key.serialize().consensus_encode(writer)?;
+        len += self.message.consensus_encode(writer)?;
+        len += self.range_proof.consensus_encode(writer)?;
+        len += self.signature.consensus_encode(writer)?;
+        return Ok(len);
     }
 }
 
