@@ -47,9 +47,21 @@ pub struct Output {
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct Input {
+    // skip features
+    pub output_id: [u8; 32],
+    // skip commitment
+    // skip input_public_key
+    // skip output_public_pey
+    // skip extra_data
+    // skip signature
+}
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct TxBody {
-    // skip inputs
-    pub outputs: Vec<Output>
+    pub inputs: Vec<Input>,
+    pub outputs: Vec<Output>,
     // skip kernels
 }
 
@@ -76,23 +88,6 @@ fn read_array_len<D: io::Read>(mut stream: D) -> u64 {
     return VarInt::consensus_decode(&mut stream).expect("read error").0;
 }
 
-
-fn skip_input<D: io::Read>(mut stream: D) -> () {
-    let features = u8::consensus_decode(&mut stream).expect("read error");
-    skip(&mut stream, 32); // output id
-    skip(&mut stream, 33); // commitment
-    skip(&mut stream, 33); // output pub key
-    if features & 1 != 0 {
-    	skip(&mut stream, 33); // input pub key
-    }
-    if features & 2 != 0 {
-    	// extra data
-    	let len = read_array_len(&mut stream);
-    	skip(&mut stream, len);
-    }
-    skip(&mut stream, 64); // signature
-}
-
 fn skip_kernel<D: io::Read>(mut stream: D) -> () {
     let features = u8::consensus_decode(&mut stream).expect("read error");
     if features & 1 != 0 { // amount
@@ -117,6 +112,37 @@ fn skip_kernel<D: io::Read>(mut stream: D) -> () {
     }
     skip(&mut stream, 33); // excess
     skip(&mut stream, 64); // signature
+}
+
+impl Decodable for Vec<Input> {
+    fn consensus_decode<D: io::Read>(mut d: D) -> Result<Self, encode::Error> {
+        let len = VarInt::consensus_decode(&mut d)?.0;
+        let mut ret = Vec::with_capacity(len as usize);
+        for _ in 0..len {
+            ret.push(Decodable::consensus_decode(&mut d)?);
+        }
+        Ok(ret)
+    }
+}
+
+impl Decodable for Input {
+    fn consensus_decode<D: io::Read>(mut d: D) -> Result<Self, encode::Error> {
+        let features = u8::consensus_decode(&mut d)?;//.expect("read error");
+        let output_id: [u8; 32] = Decodable::consensus_decode(&mut d)?;
+        skip(&mut d, 32); // output id
+        skip(&mut d, 33); // commitment
+        skip(&mut d, 33); // output pub key
+        if features & 1 != 0 {
+            skip(&mut d, 33); // input pub key
+        }
+        if features & 2 != 0 {
+            // extra data
+            let len = read_array_len(&mut d);
+            skip(&mut d, len);
+        }
+        skip(&mut d, 64); // signature
+        return Ok(Input { output_id });
+    }
 }
 
 impl Decodable for Vec<Output> {
@@ -150,16 +176,13 @@ impl Decodable for Transaction {
 
 impl Decodable for TxBody {
     fn consensus_decode<D: io::Read>(mut d: D) -> Result<Self, encode::Error> {
-        let n_inputs = read_array_len(&mut d);
-        for _ in 0..n_inputs {
-            skip_input(&mut d);
-        }
+        let inputs = Vec::<Input>::consensus_decode(&mut d)?;
         let outputs = Vec::<Output>::consensus_decode(&mut d)?;
         let n_kernels = read_array_len(&mut d);
         for _ in 0..n_kernels {
             skip_kernel(&mut d);
         }
-        return Ok(TxBody{outputs});
+        return Ok(TxBody{ inputs, outputs });
     }
 }
 
