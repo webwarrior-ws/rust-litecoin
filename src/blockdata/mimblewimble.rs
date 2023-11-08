@@ -264,7 +264,9 @@ impl Encodable for OutputMessage {
             }
             None => {}
         }
-        len += self.extra_data.consensus_encode(&mut writer)?;
+        if self.features & (OutputFeatures::ExtraDataFeatureBit as u8) != 0 {
+            len += self.extra_data.consensus_encode(&mut writer)?;
+        }
         return Ok(len);
     }
 }
