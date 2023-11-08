@@ -129,9 +129,8 @@ impl Decodable for Vec<Input> {
 
 impl Decodable for Input {
     fn consensus_decode<D: io::Read + ?Sized>(stream: &mut D) -> Result<Self, encode::Error> {
-        let features = u8::consensus_decode(stream)?;//.expect("read error");
+        let features = u8::consensus_decode(stream)?;
         let output_id: [u8; 32] = Decodable::consensus_decode(stream)?;
-        skip(stream, 32); // output id
         skip(stream, 33); // commitment
         skip(stream, 33); // output pub key
         if features & 1 != 0 {
