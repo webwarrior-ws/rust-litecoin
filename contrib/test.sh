@@ -2,7 +2,7 @@
 
 set -ex
 
-CRATES="bitcoin hashes internals fuzz"
+CRATES="bitcoin hashes internals"
 DEPS="recent minimal"
 MSRV="1\.48\.0"
 
