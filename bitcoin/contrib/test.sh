@@ -56,7 +56,7 @@ fi
 
 echo "********* Testing std *************"
 # Test without any features other than std first
-cargo test --locked --verbose --no-default-features --features="std"
+cargo test --verbose --no-default-features --features="std"
 
 echo "********* Testing default *************"
 # Then test with the default features
@@ -72,7 +72,7 @@ then
     cargo build --locked --verbose --features="no-std"
 
     # Test no_std
-    cargo test --locked --verbose --features="no-std" --no-default-features
+    cargo test --verbose --features="no-std" --no-default-features
 
     # Build all features
     cargo build --locked --verbose --features="no-std $FEATURES" --no-default-features
@@ -91,7 +91,7 @@ fi
 for feature in ${FEATURES}
 do
     echo "********* Testing $feature *************"
-    cargo test --locked --verbose --features="$feature"
+    cargo test --verbose --features="$feature"
 done
 
 cargo run --locked --example ecdsa-psbt --features=bitcoinconsensus
