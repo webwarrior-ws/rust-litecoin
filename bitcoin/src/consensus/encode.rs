@@ -123,9 +123,7 @@ pub fn deserialize<T: Decodable>(data: &[u8]) -> Result<T, Error> {
     if consumed == data.len() {
         Ok(rv)
     } else {
-        // TODO(litecoin): disabled until MWEB block data deserialisation is implemented
-        Ok(rv)
-        // Err(Error::ParseFailed("data not consumed entirely when explicitly deserializing"))
+        Err(Error::ParseFailed("data not consumed entirely when explicitly deserializing"))
     }
 }
 
