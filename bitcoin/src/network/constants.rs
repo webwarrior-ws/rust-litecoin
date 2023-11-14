@@ -248,13 +248,13 @@ impl TryFrom<ChainHash> for Network {
 pub struct Magic([u8; 4]);
 
 impl Magic {
-    /// Bitcoin mainnet network magic bytes.
-    pub const BITCOIN: Self = Self([0xF9, 0xBE, 0xB4, 0xD9]);
-    /// Bitcoin testnet network magic bytes.
-    pub const TESTNET: Self = Self([0x0B, 0x11, 0x09, 0x07]);
-    /// Bitcoin signet network magic bytes.
+    /// Litecoin mainnet network magic bytes.
+    pub const LITECOIN: Self = Self([0xFB, 0xC0, 0xB6, 0xDB]);
+    /// Litecoin testnet network magic bytes.
+    pub const TESTNET: Self = Self([0xFD, 0xD2, 0xC8, 0xF1]);
+    /// Litecoin signet network magic bytes.
     pub const SIGNET: Self = Self([0x0A, 0x03, 0xCF, 0x40]);
-    /// Bitcoin regtest network magic bytes.
+    /// Litecoin regtest network magic bytes.
     pub const REGTEST: Self = Self([0xFA, 0xBF, 0xB5, 0xDA]);
 
     /// Create network magic from bytes.
@@ -288,7 +288,7 @@ impl From<Network> for Magic {
     fn from(network: Network) -> Magic {
         match network {
             // Note: new network entries must explicitly be matched in `try_from` below.
-            Network::Bitcoin => Magic::BITCOIN,
+            Network::Bitcoin => Magic::LITECOIN,
             Network::Testnet => Magic::TESTNET,
             Network::Signet => Magic::SIGNET,
             Network::Regtest => Magic::REGTEST,
@@ -306,7 +306,7 @@ impl TryFrom<Magic> for Network {
     fn try_from(magic: Magic) -> Result<Self, Self::Error> {
         match magic {
             // Note: any new network entries must be matched against here.
-            Magic::BITCOIN => Ok(Network::Bitcoin),
+            Magic::LITECOIN => Ok(Network::Bitcoin),
             Magic::TESTNET => Ok(Network::Testnet),
             Magic::SIGNET => Ok(Network::Signet),
             Magic::REGTEST => Ok(Network::Regtest),
@@ -553,13 +553,13 @@ mod tests {
 
     #[test]
     fn serialize_test() {
-        assert_eq!(serialize(&Network::Bitcoin.magic()), &[0xf9, 0xbe, 0xb4, 0xd9]);
-        assert_eq!(serialize(&Network::Testnet.magic()), &[0x0b, 0x11, 0x09, 0x07]);
+        assert_eq!(serialize(&Network::Bitcoin.magic()), &[0xfb, 0xc0, 0xb6, 0xdb]);
+        assert_eq!(serialize(&Network::Testnet.magic()), &[0xfd, 0xd2, 0xc8, 0xf1]);
         assert_eq!(serialize(&Network::Signet.magic()), &[0x0a, 0x03, 0xcf, 0x40]);
         assert_eq!(serialize(&Network::Regtest.magic()), &[0xfa, 0xbf, 0xb5, 0xda]);
 
-        assert_eq!(deserialize(&[0xf9, 0xbe, 0xb4, 0xd9]).ok(), Some(Network::Bitcoin.magic()));
-        assert_eq!(deserialize(&[0x0b, 0x11, 0x09, 0x07]).ok(), Some(Network::Testnet.magic()));
+        assert_eq!(deserialize(&[0xfb, 0xc0, 0xb6, 0xdb]).ok(), Some(Network::Bitcoin.magic()));
+        assert_eq!(deserialize(&[0xfd, 0xd2, 0xc8, 0xf1]).ok(), Some(Network::Testnet.magic()));
         assert_eq!(deserialize(&[0x0a, 0x03, 0xcf, 0x40]).ok(), Some(Network::Signet.magic()));
         assert_eq!(deserialize(&[0xfa, 0xbf, 0xb5, 0xda]).ok(), Some(Network::Regtest.magic()));
     }
@@ -644,8 +644,8 @@ mod tests {
     #[test]
     fn magic_from_str() {
         let known_network_magic_strs = [
-            ("f9beb4d9", Network::Bitcoin),
-            ("0b110907", Network::Testnet),
+            ("fbc0b6db", Network::Bitcoin),
+            ("fdd2c8f1", Network::Testnet),
             ("fabfb5da", Network::Regtest),
             ("0a03cf40", Network::Signet),
         ];

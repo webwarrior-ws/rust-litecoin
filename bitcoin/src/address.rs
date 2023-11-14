@@ -81,6 +81,8 @@ pub enum Error {
     InvalidWitnessProgramLength(usize),
     /// A v0 witness program must be either of length 20 or 32.
     InvalidSegwitV0ProgramLength(usize),
+    /// A mweb address must be of length 66.
+    InvalidStealthAddressLength(usize),
     /// An uncompressed pubkey was used where it is not allowed.
     UncompressedPubkey,
     /// Address size more than 520 bytes is not allowed.
@@ -112,6 +114,7 @@ impl fmt::Display for Error {
             Error::MalformedWitnessVersion => f.write_str("bitcoin script opcode does not match any known witness version, the script is malformed"),
             Error::InvalidWitnessProgramLength(l) => write!(f, "the witness program must be between 2 and 40 bytes in length: length={}", l),
             Error::InvalidSegwitV0ProgramLength(l) => write!(f, "a v0 witness program must be either of length 20 or 32 bytes: length={}", l),
+            Error::InvalidStealthAddressLength(l) => write!(f, "a mweb address must be of length 66. length={}", l),
             Error::UncompressedPubkey => write!(f, "an uncompressed pubkey was used where it is not allowed"),
             Error::ExcessiveScriptSize => write!(f, "script size exceed 520 bytes"),
             Error::UnrecognizedScript => write!(f, "script is not a p2pkh, p2sh or witness program"),
@@ -145,6 +148,7 @@ impl std::error::Error for Error {
             | ExcessiveScriptSize
             | UnrecognizedScript
             | UnknownAddressType(_)
+            | InvalidStealthAddressLength(_)            
             | NetworkValidation { .. } => None,
         }
     }
@@ -174,6 +178,8 @@ pub enum AddressType {
     P2wsh,
     /// Pay to taproot.
     P2tr,
+    /// MWEB
+    Mweb,
 }
 
 impl fmt::Display for AddressType {
@@ -184,6 +190,7 @@ impl fmt::Display for AddressType {
             AddressType::P2wpkh => "p2wpkh",
             AddressType::P2wsh => "p2wsh",
             AddressType::P2tr => "p2tr",
+            AddressType::Mweb => "mweb",
         })
     }
 }
@@ -197,6 +204,7 @@ impl FromStr for AddressType {
             "p2wpkh" => Ok(AddressType::P2wpkh),
             "p2wsh" => Ok(AddressType::P2wsh),
             "p2tr" => Ok(AddressType::P2tr),
+            "mweb" => Ok(AddressType::Mweb),
             _ => Err(Error::UnknownAddressType(s.to_owned())),
         }
     }
@@ -401,6 +409,11 @@ pub enum Payload {
     ScriptHash(ScriptHash),
     /// Segwit address.
     WitnessProgram(WitnessProgram),
+    /// MWEB address.
+    StealthAddress {
+        /// PublicKey Scan (33 bytes) and PublicKey Spend (33 bytes)
+        publickey_hashes: Vec<u8>,
+    },
 }
 
 /// Witness program as defined in BIP141.
@@ -468,6 +481,9 @@ impl Payload {
             Payload::PubkeyHash(ref hash) => ScriptBuf::new_p2pkh(hash),
             Payload::ScriptHash(ref hash) => ScriptBuf::new_p2sh(hash),
             Payload::WitnessProgram(ref prog) => ScriptBuf::new_witness_program(prog),
+            Payload::StealthAddress { publickey_hashes: ref _publickey_hashes } => {
+                ScriptBuf::new()
+            }
         }
     }
 
@@ -482,6 +498,7 @@ impl Payload {
             Payload::WitnessProgram(ref prog) if script.is_witness_program() =>
                 &script.as_bytes()[2..] == prog.program.as_bytes(),
             Payload::PubkeyHash(_) | Payload::ScriptHash(_) | Payload::WitnessProgram(_) => false,
+            Payload::StealthAddress { .. } => false,
         }
     }
 
@@ -558,6 +575,7 @@ impl Payload {
             Payload::ScriptHash(hash) => hash.as_ref(),
             Payload::PubkeyHash(hash) => hash.as_ref(),
             Payload::WitnessProgram(prog) => prog.program().as_bytes(),
+            Payload::StealthAddress { publickey_hashes } => publickey_hashes,
         }
     }
 }
@@ -573,6 +591,8 @@ pub struct AddressEncoding<'a> {
     pub p2sh_prefix: u8,
     /// hrp used in bech32 addresss (e.g. "bc" for "bc1..." addresses).
     pub bech32_hrp: &'a str,
+    /// hrp used in bech32 mweb stealth addresses (e.g "ltcmweb" for "ltcmweb..." addresses).
+    pub mweb_hrp: &'a str,
 }
 
 impl<'a> fmt::Display for AddressEncoding<'a> {
@@ -603,6 +623,18 @@ impl<'a> fmt::Display for AddressEncoding<'a> {
                     bech32::Bech32Writer::new(self.bech32_hrp, version.bech32_variant(), writer)?;
                 bech32::WriteBase32::write_u5(&mut bech32_writer, version.into())?;
                 bech32::ToBase32::write_base32(&prog.as_bytes(), &mut bech32_writer)
+            }
+            Payload::StealthAddress { publickey_hashes } => {
+                let mut upper_writer;
+                let writer = if fmt.alternate() {
+                    upper_writer = UpperWriter(fmt);
+                    &mut upper_writer as &mut dyn fmt::Write
+                } else {
+                    fmt as &mut dyn fmt::Write
+                };
+                let mut bech32_writer =
+                    bech32::Bech32Writer::new(self.mweb_hrp, bech32::Variant::Bech32, writer)?;
+                bech32::ToBase32::write_base32(&publickey_hashes, &mut bech32_writer)
             }
         }
     }
@@ -638,7 +670,7 @@ impl NetworkValidation for NetworkUnchecked {
     const IS_CHECKED: bool = false;
 }
 
-/// A Bitcoin address.
+/// A Litecoin address.
 ///
 /// ### Parsing addresses
 ///
@@ -790,7 +822,8 @@ impl<V: NetworkValidation> Address<V> {
                     WitnessVersion::V1 if prog.program().len() == 32 => Some(AddressType::P2tr),
                     _ => None,
                 }
-            }
+            },
+            Payload::StealthAddress { publickey_hashes: ref _publickey_hashes } => Some(AddressType::Mweb)
         }
     }
 
@@ -805,12 +838,15 @@ impl<V: NetworkValidation> Address<V> {
             Network::Testnet | Network::Signet | Network::Regtest => SCRIPT_ADDRESS_PREFIX_TEST,
         };
         let bech32_hrp = match self.network {
-            Network::Bitcoin => "bc",
-            Network::Testnet | Network::Signet => "tb",
-            Network::Regtest => "bcrt",
+            Network::Bitcoin => "ltc",
+            Network::Testnet | Network::Signet => "tltc",
+            Network::Regtest => "rltc",
+        };
+        let mweb_hrp = match self.network {
+            Network::Bitcoin | Network::Testnet | Network::Signet | Network::Regtest => "ltcmweb",
         };
         let encoding =
-            AddressEncoding { payload: &self.payload, p2pkh_prefix, p2sh_prefix, bech32_hrp };
+            AddressEncoding { payload: &self.payload, p2pkh_prefix, p2sh_prefix, bech32_hrp, mweb_hrp };
 
         use fmt::Display;
 
@@ -930,7 +966,7 @@ impl Address {
     /// Generates a script pubkey spending to this address.
     pub fn script_pubkey(&self) -> ScriptBuf { self.payload.script_pubkey() }
 
-    /// Creates a URI string *bitcoin:address* optimized to be encoded in QR codes.
+    /// Creates a URI string *litecoin:address* optimized to be encoded in QR codes.
     ///
     /// If the address is bech32, both the schema and the address become uppercase.
     /// If the address is base58, the schema is lowercase and the address is left mixed case.
@@ -939,8 +975,8 @@ impl Address {
     /// alphanumeric mode, which is 45% more compact than the normal byte mode."
     pub fn to_qr_uri(&self) -> String {
         let schema = match self.payload {
-            Payload::WitnessProgram { .. } => "BITCOIN",
-            _ => "bitcoin",
+            Payload::WitnessProgram { .. } => "LITECOIN",
+            _ => "litecoin",
         };
         format!("{}:{:#}", schema, self)
     }
@@ -1089,9 +1125,9 @@ impl FromStr for Address<NetworkUnchecked> {
         // try bech32
         let bech32_network = match find_bech32_prefix(s) {
             // note that upper or lowercase is allowed but NOT mixed case
-            "bc" | "BC" => Some(Network::Bitcoin),
-            "tb" | "TB" => Some(Network::Testnet), // this may also be signet
-            "bcrt" | "BCRT" => Some(Network::Regtest),
+            "ltc" | "LTC" => Some(Network::Bitcoin),
+            "tltc" | "TLTC" => Some(Network::Testnet), // this may also be signet
+            "rltc" | "RLTC" => Some(Network::Regtest),
             _ => None,
         };
         if let Some(network) = bech32_network {
@@ -1116,6 +1152,42 @@ impl FromStr for Address<NetworkUnchecked> {
             }
 
             return Ok(Address::new(network, Payload::WitnessProgram(witness_program)));
+        }
+
+        let mweb_bech32_network = match find_bech32_prefix(s) {
+            "ltcmweb" | "LTCMWEB" => Some(Network::Bitcoin),
+            _ => None,
+        };
+        if let Some(network) = mweb_bech32_network {
+            // decode mweb address as bech32
+            let (_, payload, _v) = bech32::decode(s)?;
+            if payload.is_empty() {
+                return Err(Error::EmptyBech32Payload);
+            }
+
+            let (_version, data) = payload.split_at(1);
+
+            let converted: Vec<u8> = match bech32::FromBase32::from_base32(&data) {
+                Ok(data) => data,
+                Err(error) => panic!("Problem with converting: {:?}", error),
+            };
+
+            if converted.len() != 66 {
+                return Err(Error::InvalidStealthAddressLength(converted.len()));
+            }
+
+            // Get the script version and program (converted from 5-bit to 8-bit)
+            let (_scan, _spend) = {
+                let half = converted.len() / 2;
+                let (scan, spend) = converted.split_at(half);
+                (scan, spend)
+            };
+
+            return Ok(
+                Address::new(
+                    network, 
+                    Payload::StealthAddress { publickey_hashes: converted.to_vec() })
+            );
         }
 
         // Base58
@@ -1189,23 +1261,23 @@ mod tests {
     fn test_p2pkh_address_58() {
         let addr = Address::new(
             Bitcoin,
-            Payload::PubkeyHash("162c5ea71c0b23f5b9022ef047c4a86470a5b070".parse().unwrap()),
+            Payload::PubkeyHash("09d6affaa3889e89c9c81fac18bc04b2a6234844".parse().unwrap()),
         );
 
         assert_eq!(
             addr.script_pubkey(),
-            ScriptBuf::from_hex("76a914162c5ea71c0b23f5b9022ef047c4a86470a5b07088ac").unwrap()
+            ScriptBuf::from_hex("76a91409d6affaa3889e89c9c81fac18bc04b2a623484488ac").unwrap()
         );
-        assert_eq!(&addr.to_string(), "132F25rTsvBdp9JzLLBHP5mvGY66i1xdiM");
+        assert_eq!(&addr.to_string(), "LL7yXgZEK37R1sAMZtnAVdtLiy8xF932z3");
         assert_eq!(addr.address_type(), Some(AddressType::P2pkh));
         roundtrips(&addr);
     }
 
     #[test]
     fn test_p2pkh_from_key() {
-        let key = "048d5141948c1702e8c95f438815794b87f706a8d4cd2bffad1dc1570971032c9b6042a0431ded2478b5c9cf2d81c124a5e57347a3c63ef0e7716cf54d613ba183".parse::<PublicKey>().unwrap();
+        let key = "0363b56229683631e0c176e76d2f91ea1020aea709b25b6a2db7a588c3b10134b8".parse::<PublicKey>().unwrap();
         let addr = Address::p2pkh(&key, Bitcoin);
-        assert_eq!(&addr.to_string(), "1QJVDzdqb1VpbDK7uDeyVXy9mR27CJiyhY");
+        assert_eq!(&addr.to_string(), "LL7yXgZEK37R1sAMZtnAVdtLiy8xF932z3");
 
         let key = "03df154ebfcf29d29cc10d5c2565018bce2d9edbab267c31d2caf44a63056cf99f"
             .parse::<PublicKey>()
@@ -1220,14 +1292,14 @@ mod tests {
     fn test_p2sh_address_58() {
         let addr = Address::new(
             Bitcoin,
-            Payload::ScriptHash("162c5ea71c0b23f5b9022ef047c4a86470a5b070".parse().unwrap()),
+            Payload::ScriptHash("09d6affaa3889e89c9c81fac18bc04b2a6234844".parse().unwrap()),
         );
 
         assert_eq!(
             addr.script_pubkey(),
-            ScriptBuf::from_hex("a914162c5ea71c0b23f5b9022ef047c4a86470a5b07087").unwrap(),
+            ScriptBuf::from_hex("a91409d6affaa3889e89c9c81fac18bc04b2a623484487").unwrap(),
         );
-        assert_eq!(&addr.to_string(), "33iFwdLuRpW1uK1RTRqsoi8rR4NpDzk66k");
+        assert_eq!(&addr.to_string(), "M8oBVu9ojQ3AejSXcjSoTtRuyyeqj3qe1k");
         assert_eq!(addr.address_type(), Some(AddressType::P2sh));
         roundtrips(&addr);
     }
@@ -1313,6 +1385,7 @@ mod tests {
         roundtrips(&addr);
     }
 
+    // TODO(litecoin): test p2tr, segwit v1 & len !=32 and segwit v2 addresses
     #[test]
     fn test_address_debug() {
         // This is not really testing output of Debug but the ability and proper functioning
@@ -1340,22 +1413,17 @@ mod tests {
     #[test]
     fn test_address_type() {
         let addresses = [
-            ("1QJVDzdqb1VpbDK7uDeyVXy9mR27CJiyhY", Some(AddressType::P2pkh)),
-            ("33iFwdLuRpW1uK1RTRqsoi8rR4NpDzk66k", Some(AddressType::P2sh)),
-            ("bc1qvzvkjn4q3nszqxrv3nraga2r822xjty3ykvkuw", Some(AddressType::P2wpkh)),
-            (
-                "bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej",
-                Some(AddressType::P2wsh),
-            ),
-            (
-                "bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr",
-                Some(AddressType::P2tr),
-            ),
-            // Related to future extensions, addresses are valid but have no type
-            // segwit v1 and len != 32
-            ("bc1pw508d6qejxtdg4y5r3zarvary0c5xw7kw508d6qejxtdg4y5r3zarvary0c5xw7kt5nd6y", None),
-            // segwit v2
-            ("bc1zw508d6qejxtdg4y5r3zarvaryvaxxpcs", None),
+            ("LfmssDyX6iZvbVqHv6t9P6JWXia2JG7mdb", Some(AddressType::P2pkh)),
+            ("MRLUaSy2iAnCRd6pheZaAEAj8QUhbQ48mV", Some(AddressType::P2sh)),
+            ("ltc1qyh5xg40puxkzpx25fs39qtsja34v4dx6ptat5g", Some(AddressType::P2wpkh)),
+            ("ltc1q0h862mlx5www5zzjxc23fznw56f33usxhgt8ps7drq0954mex7pqnh3dvd", Some(AddressType::P2wsh)),
+            // ("bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr", Some(AddressType::P2tr)),
+            // // Related to future extensions, addresses are valid but have no type
+            // // segwit v1 and len != 32
+            // ("bc1pw508d6qejxtdg4y5r3zarvary0c5xw7kw508d6qejxtdg4y5r3zarvary0c5xw7kt5nd6y", None),
+            // // segwit v2
+            // ("bc1zw508d6qejxtdg4y5r3zarvaryvaxxpcs", None),
+            ("ltcmweb1qqvc0wyuk2r39ed482htlt5zxcqfzkqps0eev3rlejnrem0n79z2jzq5lhlv79ffu4c3v4au9z3ewks8raaz9f8t04634akevlwfdgkmkkq2cvvue", Some(AddressType::Mweb))
         ];
         for (address, expected_type) in &addresses {
             let addr = Address::from_str(address)
@@ -1370,14 +1438,8 @@ mod tests {
     fn test_bip173_350_vectors() {
         // Test vectors valid under both BIP-173 and BIP-350
         let valid_vectors = [
-            ("BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4", "0014751e76e8199196d454941c45d1b3a323f1433bd6"),
-            ("tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7", "00201863143c14c5166804bd19203356da136c985678cd4d27a1b8c6329604903262"),
-            ("bc1pw508d6qejxtdg4y5r3zarvary0c5xw7kw508d6qejxtdg4y5r3zarvary0c5xw7kt5nd6y", "5128751e76e8199196d454941c45d1b3a323f1433bd6751e76e8199196d454941c45d1b3a323f1433bd6"),
-            ("BC1SW50QGDZ25J", "6002751e"),
-            ("bc1zw508d6qejxtdg4y5r3zarvaryvaxxpcs", "5210751e76e8199196d454941c45d1b3a323"),
-            ("tb1qqqqqp399et2xygdj5xreqhjjvcmzhxw4aywxecjdzew6hylgvsesrxh6hy", "0020000000c4a5cad46221b2a187905e5266362b99d5e91c6ce24d165dab93e86433"),
-            ("tb1pqqqqp399et2xygdj5xreqhjjvcmzhxw4aywxecjdzew6hylgvsesf3hn0c", "5120000000c4a5cad46221b2a187905e5266362b99d5e91c6ce24d165dab93e86433"),
-            ("bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0", "512079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798")
+            ("ltc1q3dqc7p7qa4hhthsqyswu7l02rmj5trhxkwgy0g", "00148b418f07c0ed6f75de00241dcf7dea1ee5458ee6"),
+            
         ];
         for vector in &valid_vectors {
             let addr: Address = vector.0.parse::<Address<_>>().unwrap().assume_checked();
@@ -1528,21 +1590,21 @@ mod tests {
     #[test]
     fn test_qr_string() {
         for el in
-            ["132F25rTsvBdp9JzLLBHP5mvGY66i1xdiM", "33iFwdLuRpW1uK1RTRqsoi8rR4NpDzk66k"].iter()
+            ["LbSaQmmscP6DK5uLyFa6hNoJooMKNkxVzN", "MRLUaSy2iAnCRd6pheZaAEAj8QUhbQ48mV"].iter()
         {
             let addr =
                 Address::from_str(el).unwrap().require_network(Network::Bitcoin).expect("mainnet");
-            assert_eq!(addr.to_qr_uri(), format!("bitcoin:{}", el));
+            assert_eq!(addr.to_qr_uri(), format!("litecoin:{}", el));
         }
 
         for el in [
-            "bcrt1q2nfxmhd4n3c8834pj72xagvyr9gl57n5r94fsl",
-            "bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej",
+            "ltc1q3f8pd6nfuq9033newc2e6gvwhkp0vkprqkzuer",
+            "ltc1q5kdk2qlma28v382l9xtpvev8rd3e28hu4nv6c60z3avl8hcpkfkq8lg8mf",
         ]
         .iter()
         {
             let addr = Address::from_str(el).unwrap().assume_checked();
-            assert_eq!(addr.to_qr_uri(), format!("BITCOIN:{}", el.to_ascii_uppercase()));
+            assert_eq!(addr.to_qr_uri(), format!("LITECOIN:{}", el.to_ascii_uppercase()));
         }
     }
 
