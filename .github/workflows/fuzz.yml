@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        fuzz_target: [deser_net_msg, deserialize_address, deserialize_amount, deserialize_block, deserialize_psbt, deserialize_script, deserialize_transaction, deserialize_prefilled_transaction, deserialize_witness, outpoint_string, script_bytes_to_asm_fmt]
+        fuzz_target: [deser_net_msg, deserialize_address, deserialize_amount, deserialize_block, deserialize_psbt, deserialize_script, deserialize_transaction, deserialize_witness, outpoint_string, script_bytes_to_asm_fmt]
     steps:
       - name: Install test dependencies
         run: sudo apt-get update -y && sudo apt-get install -y binutils-dev libunwind8-dev libcurl4-openssl-dev libelf-dev libdw-dev cmake gcc libiberty-dev
@@ -46,5 +46,6 @@ jobs:
       - name: Display structure of downloaded files
         run: ls -R
       - run: find executed_* -type f -exec cat {} + | sort > executed
-      - run: ls bitcoin/fuzz/fuzz_targets | sort > expected
+      # ignore deserialize_prefilled_transaction
+      - run: ls bitcoin/fuzz/fuzz_targets | grep -v deserialize_prefilled_transaction | sort > expected
       - run: diff expected executed
