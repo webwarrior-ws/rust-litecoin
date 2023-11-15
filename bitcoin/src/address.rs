@@ -148,7 +148,7 @@ impl std::error::Error for Error {
             | ExcessiveScriptSize
             | UnrecognizedScript
             | UnknownAddressType(_)
-            | InvalidStealthAddressLength(_)            
+            | InvalidStealthAddressLength(_)
             | NetworkValidation { .. } => None,
         }
     }
@@ -481,9 +481,7 @@ impl Payload {
             Payload::PubkeyHash(ref hash) => ScriptBuf::new_p2pkh(hash),
             Payload::ScriptHash(ref hash) => ScriptBuf::new_p2sh(hash),
             Payload::WitnessProgram(ref prog) => ScriptBuf::new_witness_program(prog),
-            Payload::StealthAddress { publickey_hashes: ref _publickey_hashes } => {
-                ScriptBuf::new()
-            }
+            Payload::StealthAddress { publickey_hashes: ref _publickey_hashes } => ScriptBuf::new(),
         }
     }
 
@@ -822,8 +820,9 @@ impl<V: NetworkValidation> Address<V> {
                     WitnessVersion::V1 if prog.program().len() == 32 => Some(AddressType::P2tr),
                     _ => None,
                 }
-            },
-            Payload::StealthAddress { publickey_hashes: ref _publickey_hashes } => Some(AddressType::Mweb)
+            }
+            Payload::StealthAddress { publickey_hashes: ref _publickey_hashes } =>
+                Some(AddressType::Mweb),
         }
     }
 
@@ -845,8 +844,13 @@ impl<V: NetworkValidation> Address<V> {
         let mweb_hrp = match self.network {
             Network::Bitcoin | Network::Testnet | Network::Signet | Network::Regtest => "ltcmweb",
         };
-        let encoding =
-            AddressEncoding { payload: &self.payload, p2pkh_prefix, p2sh_prefix, bech32_hrp, mweb_hrp };
+        let encoding = AddressEncoding {
+            payload: &self.payload,
+            p2pkh_prefix,
+            p2sh_prefix,
+            bech32_hrp,
+            mweb_hrp,
+        };
 
         use fmt::Display;
 
@@ -1183,11 +1187,10 @@ impl FromStr for Address<NetworkUnchecked> {
                 (scan, spend)
             };
 
-            return Ok(
-                Address::new(
-                    network, 
-                    Payload::StealthAddress { publickey_hashes: converted.to_vec() })
-            );
+            return Ok(Address::new(
+                network,
+                Payload::StealthAddress { publickey_hashes: converted.to_vec() },
+            ));
         }
 
         // Base58
@@ -1275,7 +1278,9 @@ mod tests {
 
     #[test]
     fn test_p2pkh_from_key() {
-        let key = "0363b56229683631e0c176e76d2f91ea1020aea709b25b6a2db7a588c3b10134b8".parse::<PublicKey>().unwrap();
+        let key = "0363b56229683631e0c176e76d2f91ea1020aea709b25b6a2db7a588c3b10134b8"
+            .parse::<PublicKey>()
+            .unwrap();
         let addr = Address::p2pkh(&key, Bitcoin);
         assert_eq!(&addr.to_string(), "LL7yXgZEK37R1sAMZtnAVdtLiy8xF932z3");
 
@@ -1444,10 +1449,10 @@ mod tests {
     #[test]
     fn test_bip173_350_vectors() {
         // Test vectors valid under both BIP-173 and BIP-350
-        let valid_vectors = [
-            ("ltc1q3dqc7p7qa4hhthsqyswu7l02rmj5trhxkwgy0g", "00148b418f07c0ed6f75de00241dcf7dea1ee5458ee6"),
-            
-        ];
+        let valid_vectors = [(
+            "ltc1q3dqc7p7qa4hhthsqyswu7l02rmj5trhxkwgy0g",
+            "00148b418f07c0ed6f75de00241dcf7dea1ee5458ee6",
+        )];
         for vector in &valid_vectors {
             let addr: Address = vector.0.parse::<Address<_>>().unwrap().assume_checked();
             assert_eq!(&addr.script_pubkey().to_hex_string(), vector.1);

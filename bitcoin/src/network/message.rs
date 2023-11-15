@@ -717,7 +717,10 @@ mod test {
             0xfb, 0xc0, 0xb6, 0xdb, 0x67, 0x65, 0x74, 0x61,
             0x64, 0x64, 0x72, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x5d, 0xf6, 0xe0, 0xe2]);
-        let preimage = RawNetworkMessage { magic: Magic::from(Network::Bitcoin), payload: NetworkMessage::GetAddr };
+        let preimage = RawNetworkMessage {
+            magic: Magic::from(Network::Bitcoin),
+            payload: NetworkMessage::GetAddr,
+        };
         assert!(msg.is_ok());
         let msg: RawNetworkMessage = msg.unwrap();
         assert_eq!(preimage.magic, msg.magic);
