@@ -94,8 +94,9 @@ do
     cargo test --locked --verbose --features="$feature"
 done
 
-cargo run --locked --example ecdsa-psbt --features=bitcoinconsensus
-cargo run --locked --example taproot-psbt --features=rand-std,bitcoinconsensus
+# ignore for Litecoin
+# cargo run --locked --example ecdsa-psbt --features=bitcoinconsensus
+# cargo run --locked --example taproot-psbt --features=rand-std,bitcoinconsensus
 
 # Build the docs if told to (this only works with the nightly toolchain)
 if [ "$DO_DOCSRS" = true ]; then
