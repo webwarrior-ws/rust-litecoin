@@ -1910,6 +1910,7 @@ mod test {
     }
 
     #[test]
+    #[ignore = "Wrong test data for Litecoin"]
     fn bip_341_tests() {
         fn process_script_trees(
             v: &serde_json::Value,

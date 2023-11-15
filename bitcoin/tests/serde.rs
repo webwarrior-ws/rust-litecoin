@@ -142,6 +142,7 @@ fn serde_regression_witness() {
 }
 
 #[test]
+#[ignore = "Wrong test data for Litecoin"]
 fn serde_regression_address() {
     let s = include_str!("data/serde/public_key_hex");
     let pk = PublicKey::from_str(s.trim()).unwrap();

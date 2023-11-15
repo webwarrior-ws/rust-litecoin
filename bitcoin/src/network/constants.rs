@@ -23,7 +23,7 @@
 //! let network = Network::Bitcoin;
 //! let bytes = serialize(&network.magic());
 //!
-//! assert_eq!(&bytes[..], &[0xF9, 0xBE, 0xB4, 0xD9]);
+//! assert_eq!(&bytes[..], &[0xFB, 0xC0, 0xB6, 0xDB]);
 //! ```
 
 use core::borrow::{Borrow, BorrowMut};
@@ -86,7 +86,7 @@ impl Network {
     /// use bitcoin::network::constants::{Network, Magic};
     /// use std::convert::TryFrom;
     ///
-    /// assert_eq!(Ok(Network::Bitcoin), Network::try_from(Magic::from_bytes([0xF9, 0xBE, 0xB4, 0xD9])));
+    /// assert_eq!(Ok(Network::Bitcoin), Network::try_from(Magic::from_bytes([0xFB, 0xC0, 0xB6, 0xDB])));
     /// assert_eq!(None, Network::from_magic(Magic::from_bytes([0xFF, 0xFF, 0xFF, 0xFF])));
     /// ```
     pub fn from_magic(magic: Magic) -> Option<Network> { Network::try_from(magic).ok() }
@@ -100,7 +100,7 @@ impl Network {
     /// use bitcoin::network::constants::{Network, Magic};
     ///
     /// let network = Network::Bitcoin;
-    /// assert_eq!(network.magic(), Magic::from_bytes([0xF9, 0xBE, 0xB4, 0xD9]));
+    /// assert_eq!(network.magic(), Magic::from_bytes([0xFB, 0xC0, 0xB6, 0xDB]));
     /// ```
     pub fn magic(self) -> Magic { Magic::from(self) }
 
