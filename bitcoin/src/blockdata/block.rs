@@ -188,6 +188,7 @@ impl Decodable for Version {
 /// MWEB Block header
 #[derive(PartialEq, Eq, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 pub struct MwebBlockHeader {
     height: i32,
     output_root: [u8; 32],
@@ -220,6 +221,7 @@ impl consensus::Decodable for MwebBlockHeader {
 /// MWEB Block
 #[derive(PartialEq, Eq, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 pub struct MwebBlock {
     /// The block header
     pub header: MwebBlockHeader,

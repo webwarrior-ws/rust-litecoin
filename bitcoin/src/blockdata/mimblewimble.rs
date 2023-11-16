@@ -17,6 +17,7 @@ pub enum OutputFeatures {
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 pub struct OutputMessageStandardFields {
     pub key_exchange_pubkey: PublicKey,
     pub view_tag: u8,
@@ -26,6 +27,7 @@ pub struct OutputMessageStandardFields {
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 pub struct OutputMessage {
     pub features: u8,
     pub standard_fields: Option<OutputMessageStandardFields>,
@@ -34,6 +36,7 @@ pub struct OutputMessage {
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 pub struct Output {
     #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
     pub commitment: [u8; 33],
@@ -48,6 +51,7 @@ pub struct Output {
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 pub struct Input {
     // skip features
     pub output_id: [u8; 32],
@@ -60,6 +64,7 @@ pub struct Input {
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 pub struct TxBody {
     pub inputs: Vec<Input>,
     pub outputs: Vec<Output>,
@@ -68,6 +73,7 @@ pub struct TxBody {
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 pub struct Transaction {
     // skip: kernel offset, stealth offset
     pub body: TxBody
