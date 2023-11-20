@@ -25,7 +25,7 @@ use crate::pow::{CompactTarget, Target, Work};
 use crate::VarInt;
 use crate::internal_macros::impl_consensus_encoding;
 use crate::io;
-use super::Weight;
+use super::{Weight, mimblewimble};
 
 pub use crate::hash_types::BlockHash;
 
@@ -203,8 +203,6 @@ pub struct MwebBlockHeader {
 impl consensus::Decodable for MwebBlockHeader {
     #[inline]
     fn consensus_decode<D: io::Read + ?Sized>(d:&mut D) -> Result<MwebBlockHeader, consensus::encode::Error>{
-        // not sure why, but have to skip this byte which always has value of 130
-        let _skip = u8::consensus_decode(d)?;
         Ok(MwebBlockHeader {
             height: VarInt::consensus_decode(d)?.0 as i32,
             output_root: consensus::Decodable::consensus_decode(d)?,
@@ -232,11 +230,11 @@ pub struct MwebBlock {
 impl consensus::Decodable for MwebBlock {
     #[inline]
     fn consensus_decode<D: io::Read + ?Sized>(d:&mut D) -> Result<MwebBlock, consensus::encode::Error>{
+        // not sure why, but have to skip this byte which always has value of 130
+        let _skip = u8::consensus_decode(d)?;
         let header = consensus::Decodable::consensus_decode(d)?;
-        Ok(MwebBlock {
-            header: header,
-            tx_body: super::mimblewimble::TxBody::consensus_decode(d)?
-        })
+        let tx_body = super::mimblewimble::TxBody::consensus_decode(d)?;
+        Ok(MwebBlock { header, tx_body })
     }
 }
 

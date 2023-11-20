@@ -1168,16 +1168,13 @@ impl Decodable for Transaction {
                     // MimbleWimble transaction
                     let is_mw_tx_present = u8::consensus_decode(r)?;
                     let mw_transaction: Option<mimblewimble::Transaction>  = 
-                        if is_mw_tx_present != 0 {
+                        if is_mw_tx_present == 1 {
                             Some(mimblewimble::Transaction::consensus_decode(r)?)
                         }
                         else { 
                             // HogEx transaction
                             None
                         };
-                    if mw_transaction.is_some() {
-                        print!("MW Tx: {:?}", mw_transaction);
-                    }
                     let is_hog_ex = mw_transaction.is_none();
 
                     Ok(Transaction {

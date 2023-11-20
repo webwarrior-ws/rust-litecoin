@@ -80,16 +80,12 @@ pub struct Transaction {
 }
 
 fn skip<D: io::Read + ?Sized>(stream: &mut D, num_bytes: u64) {
-    let mut buf= Vec::<u8>::with_capacity(num_bytes as usize);
-    let _ = stream.read_exact(&mut buf.as_mut_slice());
+    let mut buf= vec![0u8; num_bytes as usize];
+    stream.read_exact(&mut buf).unwrap();
 }
 
 fn skip_amount<D: io::Read + ?Sized>(stream: &mut D) {
-    for _ in 0..10 {
-        if (u8::consensus_decode(stream).expect("read error") & 0x80) == 0 {
-            break;
-        }
-    }
+    while (u8::consensus_decode(stream).expect("read error") & 0x80) != 0 {}
 }
 
 fn read_array_len<D: io::Read + ?Sized>(stream: &mut D) -> u64 {
@@ -104,9 +100,12 @@ fn skip_kernel<D: io::Read + ?Sized>(stream: &mut D) {
     if features & 2 != 0 { // pegin
         skip_amount(stream);
     }
-    if features & 4 != 0 { // pegout
-        skip_amount(stream);
-        let _: ScriptBuf = Decodable::consensus_decode(stream).expect("read error");
+    if features & 4 != 0 { // pegouts
+        let len = read_array_len(stream);
+        for _ in 0 .. len {
+            skip_amount(stream);
+            ScriptBuf::consensus_decode(stream).expect("read error");
+        }
     }
     if features & 8 != 0 { // lock height
         skip(stream, 4);
