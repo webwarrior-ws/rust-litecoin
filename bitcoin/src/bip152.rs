@@ -393,7 +393,7 @@ mod test {
             }],
             output: vec![TxOut { value: 1, script_pubkey: ScriptBuf::new() }],
             mw_tx: None,
-            is_hog_ex: false
+            is_hog_ex: false,
         }
     }
 

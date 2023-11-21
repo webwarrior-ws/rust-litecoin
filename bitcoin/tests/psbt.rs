@@ -202,7 +202,7 @@ fn create_transaction() -> Transaction {
             },
         ],
         mw_tx: None,
-        is_hog_ex: false
+        is_hog_ex: false,
     }
 }
 
