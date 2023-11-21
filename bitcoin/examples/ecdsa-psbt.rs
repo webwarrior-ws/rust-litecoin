@@ -198,6 +198,8 @@ impl WatchOnly {
                     script_pubkey: change_address.script_pubkey(),
                 },
             ],
+            mw_tx: None,
+            is_hog_ex: false,
         };
 
         let psbt = Psbt::from_unsigned_tx(tx)?;

@@ -1774,6 +1774,8 @@ mod tests {
             lock_time: absolute::LockTime::ZERO,
             input: vec![TxIn::default(), TxIn::default()],
             output: vec![TxOut::default()],
+            mw_tx: None,
+            is_hog_ex: false,
         };
         let mut psbt = PartiallySignedTransaction::from_unsigned_tx(unsigned_tx).unwrap();
 
