@@ -10,6 +10,9 @@ use secp256k1::PublicKey;
 use crate::blockdata::script::ScriptBuf;
 use crate::VarInt;
 
+#[cfg(feature = "serde")]
+big_array! { BigArray; 33, 64, 675 }
+
 pub enum OutputFeatures {
     StandardFieldsFeatureBit = 0x01,
     ExtraDataFeatureBit = 0x02
@@ -38,14 +41,14 @@ pub struct OutputMessage {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 pub struct Output {
-    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    #[cfg_attr(feature = "serde", serde(with = "BigArray"))]
     pub commitment: [u8; 33],
     pub sender_public_key: PublicKey,
     pub receiver_public_key: PublicKey,
     pub message: OutputMessage,
-    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    #[cfg_attr(feature = "serde", serde(with = "BigArray"))]
     pub range_proof: [u8; 675],
-    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    #[cfg_attr(feature = "serde", serde(with = "BigArray"))]
     pub signature: [u8; 64],
 }
 

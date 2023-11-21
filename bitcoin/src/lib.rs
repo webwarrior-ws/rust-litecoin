@@ -73,6 +73,10 @@ pub extern crate secp256k1;
 #[macro_use]
 extern crate actual_serde as serde;
 
+#[cfg(feature = "serde")]
+#[macro_use]
+extern crate serde_big_array;
+
 #[cfg(test)]
 #[macro_use]
 mod test_macros;
