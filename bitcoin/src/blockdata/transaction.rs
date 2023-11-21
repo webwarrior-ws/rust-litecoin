@@ -1183,7 +1183,7 @@ impl Decodable for Transaction {
                         output,
                         lock_time: Decodable::consensus_decode(r)?,
                         mw_tx: None,
-                        is_hog_ex: is_hog_ex
+                        is_hog_ex
                     })
                 }
                 // We don't support anything else

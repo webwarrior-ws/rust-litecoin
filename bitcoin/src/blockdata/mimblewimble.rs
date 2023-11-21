@@ -92,7 +92,7 @@ fn skip_amount<D: io::Read + ?Sized>(stream: &mut D) {
 }
 
 fn read_array_len<D: io::Read + ?Sized>(stream: &mut D) -> u64 {
-    return VarInt::consensus_decode(stream).expect("read error").0;
+    VarInt::consensus_decode(stream).expect("read error").0
 }
 
 fn skip_kernel<D: io::Read + ?Sized>(stream: &mut D) {
@@ -150,7 +150,7 @@ impl Decodable for Input {
             skip(stream, len);
         }
         skip(stream, 64); // signature
-        return Ok(Input { output_id });
+        Ok(Input { output_id })
     }
 }
 
@@ -172,14 +172,14 @@ impl Encodable for Vec<Output> {
         for output in self {
             len += output.consensus_encode(writer)?;
         }
-        return Ok(len);
+        Ok(len)
     }
 }
 
 impl Decodable for Transaction {
     fn consensus_decode<D: io::Read + ?Sized>(d: &mut D) -> Result<Self, encode::Error> {
         skip(d,2 * 32);
-        return TxBody::consensus_decode(d).map(| body | Transaction{body} );
+        TxBody::consensus_decode(d).map(| body | Transaction{body} )
     }
 }
 
@@ -191,7 +191,7 @@ impl Decodable for TxBody {
         for _ in 0..n_kernels {
             skip_kernel(d);
         }
-        return Ok(TxBody{ inputs, outputs });
+        Ok(TxBody{ inputs, outputs })
     }
 }
 
@@ -204,7 +204,7 @@ impl Encodable for Output {
         len += self.message.consensus_encode(writer)?;
         len += self.range_proof.consensus_encode(writer)?;
         len += self.signature.consensus_encode(writer)?;
-        return Ok(len);
+        Ok(len)
     }
 }
 
@@ -218,7 +218,7 @@ impl Decodable for Output {
         let message = OutputMessage::consensus_decode(d)?;
         let range_proof : [u8;  675] = Decodable::consensus_decode(d)?;
         let signature: [u8; 64] = Decodable::consensus_decode(d)?;
-        return Ok(
+        Ok(
             Output { 
                 commitment, 
                 sender_public_key, 
@@ -227,7 +227,7 @@ impl Decodable for Output {
                 range_proof,
                 signature 
             }
-        );
+        )
     }
 }
 
@@ -257,7 +257,7 @@ impl Decodable for OutputMessage {
             else {
                 vec! []
             };
-        return Ok(OutputMessage{features, standard_fields, extra_data});
+        Ok(OutputMessage{features, standard_fields, extra_data})
     }
 }
 
@@ -265,18 +265,15 @@ impl Encodable for OutputMessage {
     fn consensus_encode<W: io::Write + ?Sized>(&self, writer: &mut W) -> Result<usize, io::Error> {
         let mut len = 0;
         len += self.features.consensus_encode(writer)?;
-        match self.standard_fields {
-            Some(ref fields) => {
-                len += fields.key_exchange_pubkey.serialize().consensus_encode(writer)?;
-                len += fields.view_tag.consensus_encode(writer)?;
-                len += fields.masked_value.consensus_encode(writer)?;
-                len += fields.masked_nonce.consensus_encode(writer)?;
-            }
-            None => {}
+        if let Some(ref fields) = self.standard_fields {
+            len += fields.key_exchange_pubkey.serialize().consensus_encode(writer)?;
+            len += fields.view_tag.consensus_encode(writer)?;
+            len += fields.masked_value.consensus_encode(writer)?;
+            len += fields.masked_nonce.consensus_encode(writer)?;
         }
         if self.features & (OutputFeatures::ExtraDataFeatureBit as u8) != 0 {
             len += self.extra_data.consensus_encode(writer)?;
         }
-        return Ok(len);
+        Ok(len)
     }
 }

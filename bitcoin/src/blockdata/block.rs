@@ -25,7 +25,7 @@ use crate::pow::{CompactTarget, Target, Work};
 use crate::VarInt;
 use crate::internal_macros::impl_consensus_encoding;
 use crate::io;
-use super::{Weight, mimblewimble};
+use super::Weight;
 
 pub use crate::hash_types::BlockHash;
 
@@ -267,12 +267,9 @@ impl consensus::Encodable for Block {
         len += self.header.consensus_encode(s)?;
         len += self.txdata.consensus_encode(s)?;
         if self.txdata.len() >= 2 {
-            match self.mweb_block {
-                Some(ref _mweb_block) => {
-                    // do nothing for now as encoding is not implemented for MW types
-                    //len += mweb_block.consensus_encode(s)?;
-                }
-                None => {}
+            if let Some(ref _mweb_block) = self.mweb_block {
+                // do nothing for now as encoding is not implemented for MW types
+                //len += mweb_block.consensus_encode(s)?;
             }
         }
         Ok(len)
@@ -299,11 +296,7 @@ impl consensus::Decodable for Block {
             else {
                 None
             };
-        Ok(Block {
-            header: header, 
-            txdata: txdata,
-            mweb_block: mweb_block
-        })
+        Ok(Block { header,  txdata, mweb_block })
     }
 }
 
