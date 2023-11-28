@@ -720,14 +720,14 @@ impl Address {
     /// ```rust
     /// use bitcoin::{Address, Network};
     ///
-    /// let address: Address = "2N83imGV3gPwBzKJQvWJ7cRUY2SpUyU6A5e".parse().unwrap();
+    /// let address: Address = "mrCDrCybB6J1vRfbwM5hemdJz73FwDBC8r".parse().unwrap();
     /// assert!(address.is_valid_for_network(Network::Testnet));
     /// assert!(address.is_valid_for_network(Network::Regtest));
     /// assert!(address.is_valid_for_network(Network::Signet));
     ///
     /// assert_eq!(address.is_valid_for_network(Network::Bitcoin), false);
     ///
-    /// let address: Address = "32iVBEu4dxkUQk9dJbZUiBiQdmypcEyJRf".parse().unwrap();
+    /// let address: Address = "LWoRESps8rTsfDy247eURuYFhshXeiYpJq".parse().unwrap();
     /// assert!(address.is_valid_for_network(Network::Bitcoin));
     /// assert_eq!(address.is_valid_for_network(Network::Testnet), false);
     /// ```
@@ -1065,10 +1065,10 @@ mod tests {
 
     #[test]
     fn test_p2wpkh() {
-        // stolen from Bitcoin transaction: b3c8c2b6cfc335abbcb2c7823a8453f55d64b2b5125a9a61e8737230cdb8ce20
-        let mut key = hex_key!("033bc8c83c52df5712229a2f72206d90192366c36428cb0c12b6af98324d97bfbc");
+        // stolen from Litecoin transaction: 20b58afe635acf1638167a572f5cad1599bb9f54f4fa09a1f1a2d618f010089f
+        let mut key = hex_key!("03b74b5004e61989b5b622770c804532f8b99d1fb82d3db6ada99fae08c49d62f4");
         let addr = Address::p2wpkh(&key, Bitcoin).unwrap();
-        assert_eq!(&addr.to_string(), "bc1qvzvkjn4q3nszqxrv3nraga2r822xjty3ykvkuw");
+        assert_eq!(&addr.to_string(), "ltc1q4kjzers555cwr4dvyzy9tgl65xfzef7kxtk07n");
         assert_eq!(addr.address_type(), Some(AddressType::P2wpkh));
         roundtrips(&addr);
 
@@ -1079,12 +1079,12 @@ mod tests {
 
     #[test]
     fn test_p2wsh() {
-        // stolen from Bitcoin transaction 5df912fda4becb1c29e928bec8d64d93e9ba8efa9b5b405bd683c86fd2c65667
-        let script = hex_script!("52210375e00eb72e29da82b89367947f29ef34afb75e8654f6ea368e0acdfd92976b7c2103a1b26313f430c4b15bb1fdce663207659d8cac749a0e53d70eff01874496feff2103c96d495bfdd5ba4145e3e046fee45e84a8a48ad05bd8dbb395c011a32cf9f88053ae");
-        let addr = Address::p2wsh(&script, Bitcoin);
+        // https://github.com/karask/python-litecoin-utils/blob/master/examples/keys_segwit_addresses.py
+        let script = hex_script!("5121028776151d9c588fe568b6d31cb970764ddf081cdc82e1eaab849a493480376b5151ae");
+        let addr = Address::p2wsh(&script, Testnet);
         assert_eq!(
             &addr.to_string(),
-            "bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej"
+            "tltc1qy4kdfavhluvnhpwcqmqrd8x0ge2ynnsl7mv2mdmdskx4g3fc6ckqc2f5dh"
         );
         assert_eq!(addr.address_type(), Some(AddressType::P2wsh));
         roundtrips(&addr);
@@ -1370,10 +1370,10 @@ mod tests {
 
     #[test]
     fn test_is_related_to_pubkey_p2wpkh() {
-        let address_string = "bc1qhvd6suvqzjcu9pxjhrwhtrlj85ny3n2mqql5w4";
+        let address_string = "tltc1qxmt9xgewg6mxc4mvnzvrzu4f2v0gy782sv0kl8";
         let address = Address::from_str(address_string).expect("address");
 
-        let pubkey_string = "0347ff3dacd07a1f43805ec6808e801505a6e18245178609972a68afbc2777ff2b";
+        let pubkey_string = "028b9b0e596dbefb2055c0bfd7bb34b90d491030df81a2659ca5dbf941647e28ea";
         let pubkey = PublicKey::from_str(pubkey_string).expect("pubkey");
 
         let result = address.is_related_to_pubkey(&pubkey);
@@ -1400,10 +1400,10 @@ mod tests {
 
     #[test]
     fn test_is_related_to_pubkey_p2pkh() {
-        let address_string = "1J4LVanjHMu3JkXbVrahNuQCTGCRRgfWWx";
+        let address_string = "mrddErdHWxQgytGpV2f9tjexJRsRR1Tsff";
         let address = Address::from_str(address_string).expect("address");
 
-        let pubkey_string = "0347ff3dacd07a1f43805ec6808e801505a6e18245178609972a68afbc2777ff2b";
+        let pubkey_string = "037d96b41c270d57b529df03479edcc887b9e9846eb74823ca4ec4d48ee3e6d0a7";
         let pubkey = PublicKey::from_str(pubkey_string).expect("pubkey");
 
         let result = address.is_related_to_pubkey(&pubkey);
