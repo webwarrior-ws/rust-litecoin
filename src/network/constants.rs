@@ -34,7 +34,7 @@
 //! let network = Network::Bitcoin;
 //! let bytes = serialize(&network.magic());
 //!
-//! assert_eq!(&bytes[..], &[0xF9, 0xBE, 0xB4, 0xD9]);
+//! assert_eq!(&bytes[..], &[0xFB, 0xC0, 0xB6, 0xDB]);
 //! ```
 
 use core::{fmt, ops, convert::From};
