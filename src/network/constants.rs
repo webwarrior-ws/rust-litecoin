@@ -27,7 +27,7 @@
 //!
 //! # Example: encoding a network's magic bytes
 //!
-//! ```ignore
+//! ```rust
 //! use bitcoin::network::constants::Network;
 //! use bitcoin::consensus::encode::serialize;
 //!
