@@ -1050,9 +1050,9 @@ mod tests {
 
     #[test]
     fn test_p2sh_parse() {
-        let script = hex_script!("552103a765fc35b3f210b95223846b36ef62a4e53e34e2925270c2c7906b92c9f718eb2103c327511374246759ec8d0b89fa6c6b23b33e11f92c5bc155409d86de0c79180121038cae7406af1f12f4786d820a1466eec7bc5785a1b5e4a387eca6d797753ef6db2103252bfb9dcaab0cd00353f2ac328954d791270203d66c2be8b430f115f451b8a12103e79412d42372c55dd336f2eb6eb639ef9d74a22041ba79382c74da2338fe58ad21035049459a4ebc00e876a9eef02e72a3e70202d3d1f591fc0dd542f93f642021f82102016f682920d9723c61b27f562eb530c926c00106004798b6471e8c52c60ee02057ae");
+        let script = hex_script!("5121028776151d9c588fe568b6d31cb970764ddf081cdc82e1eaab849a493480376b5151ae");
         let addr = Address::p2sh(&script, Testnet).unwrap();
-        assert_eq!(&addr.to_string(), "2N3zXjbwdTcPsJiy8sUK9FhWJhqQCxA8Jjr");
+        assert_eq!(&addr.to_string(), "QR79knUAGqAfcP2LeZwfRra444C84Q559G");
         assert_eq!(addr.address_type(), Some(AddressType::P2sh));
         roundtrips(&addr);
     }
@@ -1092,10 +1092,11 @@ mod tests {
 
     #[test]
     fn test_p2shwpkh() {
-        // stolen from Bitcoin transaction: ad3fd9c6b52e752ba21425435ff3dd361d6ac271531fc1d2144843a9f550ad01
-        let mut key = hex_key!("026c468be64d22761c30cd2f12cbc7de255d592d7904b1bab07236897cc4c2e766");
-        let addr = Address::p2shwpkh(&key, Bitcoin).unwrap();
-        assert_eq!(&addr.to_string(), "3QBRmWNqqBGme9er7fMkGqtZtp4gjMFxhE");
+        // https://github.com/karask/python-litecoin-utils/blob/master/examples/keys_segwit_addresses.py
+        // converted to new style address using https://litecoin-project.github.io/p2sh-convert/
+        let mut key = hex_key!("035115a221cd480272769b31b51c0c4da20b3a654dec16bbf6b459d8c5541d3550");
+        let addr = Address::p2shwpkh(&key, Testnet).unwrap();
+        assert_eq!(&addr.to_string(), "Qbur149DQc4naLzMBwS2MBBzJC7dAF1H22");
         assert_eq!(addr.address_type(), Some(AddressType::P2sh));
         roundtrips(&addr);
 
@@ -1106,10 +1107,11 @@ mod tests {
 
     #[test]
     fn test_p2shwsh() {
-        // stolen from Bitcoin transaction f9ee2be4df05041d0e0a35d7caa3157495ca4f93b233234c9967b6901dacf7a9
-        let script = hex_script!("522103e5529d8eaa3d559903adb2e881eb06c86ac2574ffa503c45f4e942e2a693b33e2102e5f10fcdcdbab211e0af6a481f5532536ec61a5fdbf7183770cf8680fe729d8152ae");
-        let addr = Address::p2shwsh(&script, Bitcoin);
-        assert_eq!(&addr.to_string(), "36EqgNnsWW94SreZgBWc1ANC6wpFZwirHr");
+        // https://github.com/karask/python-litecoin-utils/blob/master/examples/keys_segwit_addresses.py
+        // converted to new style address using https://litecoin-project.github.io/p2sh-convert/
+        let script = hex_script!("5121028776151d9c588fe568b6d31cb970764ddf081cdc82e1eaab849a493480376b5151ae");
+        let addr = Address::p2shwsh(&script, Testnet);
+        assert_eq!(&addr.to_string(), "QfNyJaVHXmHLHoKfSHTEdedtQaw2TCaTnK");
         assert_eq!(addr.address_type(), Some(AddressType::P2sh));
         roundtrips(&addr);
     }
@@ -1385,10 +1387,10 @@ mod tests {
 
     #[test]
     fn test_is_related_to_pubkey_p2shwpkh() {
-        let address_string = "3EZQk4F8GURH5sqVMLTFisD17yNeKa7Dfs";
+        let address_string = "Qbur149DQc4naLzMBwS2MBBzJC7dAF1H22";
         let address = Address::from_str(address_string).expect("address");
 
-        let pubkey_string = "0347ff3dacd07a1f43805ec6808e801505a6e18245178609972a68afbc2777ff2b";
+        let pubkey_string = "035115a221cd480272769b31b51c0c4da20b3a654dec16bbf6b459d8c5541d3550";
         let pubkey = PublicKey::from_str(pubkey_string).expect("pubkey");
 
         let result = address.is_related_to_pubkey(&pubkey);
