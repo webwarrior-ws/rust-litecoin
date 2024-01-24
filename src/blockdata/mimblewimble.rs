@@ -5,7 +5,6 @@ use crate::io;
 
 use consensus::{encode, Decodable, Encodable};
 use secp256k1::PublicKey;
-use secp256k1::schnorr::Signature;
 use Script;
 use VarInt;
 
@@ -64,7 +63,8 @@ pub struct Input {
     pub input_public_key: Option<PublicKey>,
     pub output_public_key: PublicKey,
     pub extra_data: Vec<u8>,
-    pub signature: Signature
+    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    pub signature: [u8; 64]
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -89,7 +89,8 @@ pub struct Kernel {
     #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
     pub excess: [u8; 33],
     // The signature proving the excess is a valid public key, which signs the transaction fee.
-    pub signature: Signature
+    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    pub signature: [u8; 64]
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -125,6 +126,27 @@ fn read_amount<D: io::Read>(stream: &mut D) -> Result<i64, encode::Error> {
     Ok(n)
 }
 
+fn write_amount<W: io::Write>(amount: i64, mut writer: W) -> Result<usize, io::Error> {
+    let mut n = amount;
+    const SIZE: usize = 10;
+    let mut tmp = [0u8; SIZE];
+    let mut len = 0;
+    loop {
+        let a = (n & 0x7F) as u8;
+        let b = (if len != 0 { 0x80 } else { 0x00 }) as u8;
+        tmp[len] = a | b;
+        if n <= 0x7F {
+            break;
+        }
+        n = (n >> 7) - 1;
+        len += 1;
+    };
+    for _ in 0 .. len {
+        let _ = u8::consensus_encode(&tmp[len], &mut writer);
+    };
+    Ok(len)
+}
+
 fn read_array_len<D: io::Read>(mut stream: D) -> u64 {
     return VarInt::consensus_decode(&mut stream).expect("read error").0;
 }
@@ -134,6 +156,15 @@ impl Decodable for PegOutCoin {
         let amount = read_amount(&mut d)?;
         let script_pub_key = Script::consensus_decode(&mut d)?;
         Ok(PegOutCoin { amount, script_pub_key })
+    }
+}
+
+impl Encodable for PegOutCoin {
+    fn consensus_encode<W: io::Write>(&self, mut writer: W) -> Result<usize, io::Error> {
+        let mut len = 0;
+        len += write_amount(self.amount, &mut writer)?;
+        len += &self.script_pub_key.consensus_encode(&mut writer)?;
+        Ok(len)
     }
 }
 
@@ -181,8 +212,7 @@ impl Decodable for Kernel {
             extra_data = Vec::<u8>::consensus_decode(&mut d)?;
         }
         let excess: [u8; 33] = Decodable::consensus_decode(&mut d)?;
-        let signature_bytes: [u8; 64] = Decodable::consensus_decode(&mut d)?;
-        let signature = Signature::from_slice(&signature_bytes).unwrap();
+        let signature: [u8; 64] = Decodable::consensus_decode(&mut d)?;
         Ok(
             Kernel { 
                 features, 
@@ -199,6 +229,37 @@ impl Decodable for Kernel {
     }
 }
 
+impl Encodable for Kernel {
+    fn consensus_encode<W: io::Write>(&self, mut writer: W) -> Result<usize, io::Error> {
+        let mut len = 0;
+        len += self.features.consensus_encode(&mut writer)?;
+        if self.features & (KernelFeatures::FeeFeatureBit as u8) != 0 {
+            len += write_amount(self.fee.unwrap(), &mut writer)?;
+        }
+        if self.features & (KernelFeatures::PeginFeatureBit as u8) != 0 {
+            len += self.pegin.unwrap().consensus_encode(&mut writer)?;
+        }
+        if self.features & (KernelFeatures::PegoutFeatureBit as u8) != 0 {
+            len += VarInt(self.pegouts.len() as u64).consensus_encode(&mut writer)?;
+            for pegout in &self.pegouts {
+                pegout.consensus_encode(&mut writer)?;
+            }
+        }
+        if self.features & (KernelFeatures::HeightLockFeatureBit as u8) != 0 {
+            len += self.lock_height.unwrap().consensus_encode(&mut writer)?;
+        }
+        if self.features & (KernelFeatures::StealthExcessFeatureBit as u8) != 0 {
+            len += self.stealth_excess.unwrap().serialize().consensus_encode(&mut writer)?;
+        }
+        if self.features & (KernelFeatures::ExtraDataFeatureBit as u8) != 0 {
+            len += self.extra_data.consensus_encode(&mut writer)?;
+        }
+        len += self.excess.consensus_encode(&mut writer)?;
+        len += self.signature.consensus_encode(&mut writer)?;
+        Ok(len)
+    }
+}
+
 impl Decodable for Vec<Kernel> {
     fn consensus_decode<D: io::Read>(mut d: D) -> Result<Self, encode::Error> {
         let len = VarInt::consensus_decode(&mut d)?.0;
@@ -210,6 +271,17 @@ impl Decodable for Vec<Kernel> {
     }
 }
 
+impl Encodable for Vec<Kernel> {
+    fn consensus_encode<W: io::Write>(&self, mut writer: W) -> Result<usize, io::Error> {
+        let mut len = 0;
+        len += VarInt(self.len() as u64).consensus_encode(&mut writer)?;
+        for kernel in self {
+            len += kernel.consensus_encode(&mut writer)?;
+        }
+        return Ok(len);
+    }
+}
+
 impl Decodable for Vec<Input> {
     fn consensus_decode<D: io::Read>(mut d: D) -> Result<Self, encode::Error> {
         let len = VarInt::consensus_decode(&mut d)?.0;
@@ -218,6 +290,17 @@ impl Decodable for Vec<Input> {
             ret.push(Decodable::consensus_decode(&mut d)?);
         }
         Ok(ret)
+    }
+}
+
+impl Encodable for Vec<Input> {
+    fn consensus_encode<W: io::Write>(&self, mut writer: W) -> Result<usize, io::Error> {
+        let mut len = 0;
+        len += VarInt(self.len() as u64).consensus_encode(&mut writer)?;
+        for input in self {
+            len += input.consensus_encode(&mut writer)?;
+        }
+        return Ok(len);
     }
 }
 
@@ -241,8 +324,7 @@ impl Decodable for Input {
             // extra data
             extra_data = Vec::<u8>::consensus_decode(&mut d)?;
         }
-        let signature_bytes: [u8; 64] = Decodable::consensus_decode(&mut d)?;
-        let signature = Signature::from_slice(&signature_bytes).unwrap();
+        let signature: [u8; 64] = Decodable::consensus_decode(&mut d)?;
         return Ok(
             Input { 
                 features, 
@@ -254,6 +336,24 @@ impl Decodable for Input {
                 signature
             }
         );
+    }
+}
+
+impl Encodable for Input {
+    fn consensus_encode<W: io::Write>(&self, mut writer: W) -> Result<usize, io::Error> {
+        let mut len = 0;
+        len += self.features.consensus_encode(&mut writer)?;
+        len += self.output_id.consensus_encode(&mut writer)?;
+        len += self.commitment.consensus_encode(&mut writer)?;
+        len += self.output_public_key.serialize().consensus_encode(&mut writer)?;
+        if self.features & 1 != 0 {
+            len += self.input_public_key.unwrap().serialize().consensus_encode(&mut writer)?;
+        }
+        if self.features & 2 != 0 {
+            len += self.extra_data.consensus_encode(&mut writer)?;
+        }
+        len += self.signature.consensus_encode(&mut writer)?;
+        Ok(len)
     }
 }
 
@@ -288,12 +388,32 @@ impl Decodable for Transaction {
     }
 }
 
+impl Encodable for Transaction {
+    fn consensus_encode<W: io::Write>(&self, mut writer: W) -> Result<usize, io::Error> {
+        let mut len = 0;
+        len += self.kernel_offset.consensus_encode(&mut writer)?;
+        len += self.stealth_offset.consensus_encode(&mut writer)?;
+        len += self.body.consensus_encode(&mut writer)?;
+        Ok(len)
+    }
+}
+
 impl Decodable for TxBody {
     fn consensus_decode<D: io::Read>(mut d: D) -> Result<Self, encode::Error> {
         let inputs = Vec::<Input>::consensus_decode(&mut d)?;
         let outputs = Vec::<Output>::consensus_decode(&mut d)?;
         let kernels = Vec::<Kernel>::consensus_decode(&mut d)?;
         return Ok(TxBody{ inputs, outputs, kernels });
+    }
+}
+
+impl Encodable for TxBody {
+    fn consensus_encode<W: io::Write>(&self, mut writer: W) -> Result<usize, io::Error> {
+        let mut len = 0;
+        len += self.inputs.consensus_encode(&mut writer)?;
+        len += self.outputs.consensus_encode(&mut writer)?;
+        len += self.kernels.consensus_encode(&mut writer)?;
+        Ok(len)
     }
 }
 
