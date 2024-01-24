@@ -1,13 +1,22 @@
-// MimbleWimble transaction.
-// Only parts that are needed for identifying outputs are implemented.
+// MimbleWimble transaction
 #![allow(missing_docs)]
 use crate::prelude::*;
 use crate::io;
 
 use consensus::{encode, Decodable, Encodable};
 use secp256k1::PublicKey;
+use secp256k1::schnorr::Signature;
 use Script;
 use VarInt;
+
+pub enum KernelFeatures {
+    FeeFeatureBit = 0x01,
+    PeginFeatureBit = 0x02,
+    PegoutFeatureBit = 0x04,
+    HeightLockFeatureBit = 0x08,
+    StealthExcessFeatureBit = 0x10,
+    ExtraDataFeatureBit = 0x20
+}
 
 pub enum OutputFeatures {
     StandardFieldsFeatureBit = 0x01,
@@ -48,13 +57,39 @@ pub struct Output {
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Input {
-    // skip features
+    pub features: u8,
     pub output_id: [u8; 32],
-    // skip commitment
-    // skip input_public_key
-    // skip output_public_pey
-    // skip extra_data
-    // skip signature
+    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    pub commitment: [u8; 33],
+    pub input_public_key: Option<PublicKey>,
+    pub output_public_key: PublicKey,
+    pub extra_data: Vec<u8>,
+    pub signature: Signature
+}
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct PegOutCoin {
+    amount: i64,
+    script_pub_key: Script
+}
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct Kernel {
+    pub features: u8,
+    pub fee: Option<i64>,
+    pub pegin: Option<i64>,
+    pub pegouts: Vec<PegOutCoin>,
+    pub lock_height: Option<i32>,
+    pub stealth_excess: Option<PublicKey>,
+    pub extra_data: Vec<u8>,
+    // Remainder of the sum of all transaction commitments. 
+    // If the transaction is well formed, amounts components should sum to zero and the excess is hence a valid public key.
+    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    pub excess: [u8; 33],
+    // The signature proving the excess is a valid public key, which signs the transaction fee.
+    pub signature: Signature
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -62,56 +97,117 @@ pub struct Input {
 pub struct TxBody {
     pub inputs: Vec<Input>,
     pub outputs: Vec<Output>,
-    // skip kernels
+    pub kernels: Vec<Kernel>
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Transaction {
-    // skip: kernel offset, stealth offset
+    kernel_offset: [u8; 32],
+    stealth_offset: [u8; 32],
     pub body: TxBody
 }
 
-fn skip<D: io::Read>(stream: &mut  D, num_bytes: u64) -> () {
-    let mut buf= vec![0u8; num_bytes as usize];
-    stream.read_exact(&mut buf).unwrap();
-}
-
-fn skip_amount<D: io::Read>(stream: &mut D) {
-    while (u8::consensus_decode(&mut *stream).expect("read error") & 0x80) != 0 {}
+fn read_amount<D: io::Read>(stream: &mut D) -> Result<i64, encode::Error> {
+    let mut n: i64 = 0;
+    loop {
+        let ch_data = u8::consensus_decode(&mut *stream)?;
+        let a = n << 7;
+        let b = (ch_data & 0x7F) as i64;
+        n = a | b;
+        if (ch_data & 0x80) != 0 {
+            n += 1;
+        }
+        else {
+            break;
+        }
+    }
+    Ok(n)
 }
 
 fn read_array_len<D: io::Read>(mut stream: D) -> u64 {
     return VarInt::consensus_decode(&mut stream).expect("read error").0;
 }
 
-fn skip_kernel<D: io::Read>(mut stream: D) -> () {
-    let features = u8::consensus_decode(&mut stream).expect("read error");
-    if features & 1 != 0 { // amount
-        skip_amount(&mut stream);
+impl Decodable for PegOutCoin {
+    fn consensus_decode<D: io::Read>(mut d: D) -> Result<Self, encode::Error> {
+        let amount = read_amount(&mut d)?;
+        let script_pub_key = Script::consensus_decode(&mut d)?;
+        Ok(PegOutCoin { amount, script_pub_key })
     }
-    if features & 2 != 0 { // pegin
-        skip_amount(&mut stream);
-    }
-    if features & 4 != 0 { // pegouts
-        let len = read_array_len(&mut stream);
-        for _ in 0 .. len {
-            skip_amount(&mut stream);
-            Script::consensus_decode(&mut stream).expect("read error");
+}
+
+impl Decodable for Kernel {
+    fn consensus_decode<D: io::Read>(mut d: D) -> Result<Self, encode::Error> {
+        let features = u8::consensus_decode(&mut d).expect("read error");
+        let fee =
+            if features & (KernelFeatures::FeeFeatureBit as u8) != 0 {
+                Some(read_amount(&mut d)?)
+            }
+            else {
+                None
+            };
+        let pegin =
+            if features & (KernelFeatures::PeginFeatureBit as u8) != 0 {
+                Some(read_amount(&mut d)?)
+            }
+            else {
+                None
+            };
+        let mut pegouts = Vec::<PegOutCoin>::new();
+        if features & (KernelFeatures::PegoutFeatureBit as u8) != 0 {
+            let len = read_array_len(&mut d);
+            for _ in 0 .. len {
+                pegouts.push(PegOutCoin::consensus_decode(&mut d)?);
+            }
         }
+        let lock_height =
+            if features & (KernelFeatures::HeightLockFeatureBit as u8) != 0 {
+                Some(i32::consensus_decode(&mut d)?)
+            }
+            else {
+                None
+            };
+        let stealth_excess =
+            if features & (KernelFeatures::StealthExcessFeatureBit as u8) != 0 {
+                let pubkey_bytes: [u8; 33] = Decodable::consensus_decode(&mut d)?;
+                Some(PublicKey::from_slice(&pubkey_bytes).unwrap())
+            }
+            else {
+                None
+            };
+        let mut extra_data = Vec::<u8>::new();
+        if features & (KernelFeatures::ExtraDataFeatureBit as u8) != 0 {
+            extra_data = Vec::<u8>::consensus_decode(&mut d)?;
+        }
+        let excess: [u8; 33] = Decodable::consensus_decode(&mut d)?;
+        let signature_bytes: [u8; 64] = Decodable::consensus_decode(&mut d)?;
+        let signature = Signature::from_slice(&signature_bytes).unwrap();
+        Ok(
+            Kernel { 
+                features, 
+                fee, 
+                pegin, 
+                pegouts, 
+                lock_height, 
+                stealth_excess, 
+                extra_data,
+                excess,
+                signature
+            }
+        )
     }
-    if features & 8 != 0 { // lock height
-        skip(&mut stream, 4);
+}
+
+impl Decodable for Vec<Kernel> {
+    fn consensus_decode<D: io::Read>(mut d: D) -> Result<Self, encode::Error> {
+        let len = VarInt::consensus_decode(&mut d)?.0;
+        let mut ret = Vec::with_capacity(len as usize);
+        for _ in 0..len {
+            ret.push(Decodable::consensus_decode(&mut d)?);
+        }
+        Ok(ret)
     }
-    if features & 16 != 0 { // stealth excess
-        skip(&mut stream, 33);
-    }
-    if features & 32 != 0 { // extra data
-        let len = read_array_len(&mut stream);
-        skip(&mut stream, len);
-    }
-    skip(&mut stream, 33); // excess
-    skip(&mut stream, 64); // signature
 }
 
 impl Decodable for Vec<Input> {
@@ -129,18 +225,35 @@ impl Decodable for Input {
     fn consensus_decode<D: io::Read>(mut d: D) -> Result<Self, encode::Error> {
         let features = u8::consensus_decode(&mut d)?;
         let output_id: [u8; 32] = Decodable::consensus_decode(&mut d)?;
-        skip(&mut d, 33); // commitment
-        skip(&mut d, 33); // output pub key
-        if features & 1 != 0 {
-            skip(&mut d, 33); // input pub key
-        }
+        let commitment: [u8; 33] = Decodable::consensus_decode(&mut d)?;
+        let output_public_key_bytes: [u8; 33] = Decodable::consensus_decode(&mut d)?;
+        let output_public_key = PublicKey::from_slice(&output_public_key_bytes).unwrap();
+        let input_public_key =
+            if features & 1 != 0 {
+                let input_public_key_bytes: [u8; 33] = Decodable::consensus_decode(&mut d)?;
+                Some(PublicKey::from_slice(&input_public_key_bytes).unwrap())
+            }
+            else {
+                None
+            };
+        let mut extra_data = Vec::<u8>::new();
         if features & 2 != 0 {
             // extra data
-            let len = read_array_len(&mut d);
-            skip(&mut d, len);
+            extra_data = Vec::<u8>::consensus_decode(&mut d)?;
         }
-        skip(&mut d, 64); // signature
-        return Ok(Input { output_id });
+        let signature_bytes: [u8; 64] = Decodable::consensus_decode(&mut d)?;
+        let signature = Signature::from_slice(&signature_bytes).unwrap();
+        return Ok(
+            Input { 
+                features, 
+                output_id, 
+                commitment, 
+                input_public_key, 
+                output_public_key, 
+                extra_data,
+                signature
+            }
+        );
     }
 }
 
@@ -168,8 +281,10 @@ impl Encodable for Vec<Output> {
 
 impl Decodable for Transaction {
     fn consensus_decode<D: io::Read>(mut d: D) -> Result<Self, encode::Error> {
-        skip(&mut d,2 * 32);
-        return TxBody::consensus_decode(d).map(| body | Transaction{body} );
+        let kernel_offset: [u8; 32] = Decodable::consensus_decode(&mut d)?;
+        let stealth_offset: [u8; 32] = Decodable::consensus_decode(&mut d)?;
+        let body= TxBody::consensus_decode(d)?;
+        return Ok(Transaction{ kernel_offset, stealth_offset, body });
     }
 }
 
@@ -177,11 +292,8 @@ impl Decodable for TxBody {
     fn consensus_decode<D: io::Read>(mut d: D) -> Result<Self, encode::Error> {
         let inputs = Vec::<Input>::consensus_decode(&mut d)?;
         let outputs = Vec::<Output>::consensus_decode(&mut d)?;
-        let n_kernels = read_array_len(&mut d);
-        for _ in 0..n_kernels {
-            skip_kernel(&mut d);
-        }
-        return Ok(TxBody{ inputs, outputs });
+        let kernels = Vec::<Kernel>::consensus_decode(&mut d)?;
+        return Ok(TxBody{ inputs, outputs, kernels });
     }
 }
 
