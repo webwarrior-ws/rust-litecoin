@@ -54,6 +54,10 @@ const UINT256_ONE: [u8; 32] = [
     0, 0, 0, 0, 0, 0, 0, 0
 ];
 
+// serialization segwit flags
+const FLAGS_SEGWIT: u8 = 1u8;
+const FLAGS_MWEB_TX: u8 = 8u8;
+
 /// A reference to a transaction output.
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub struct OutPoint {
@@ -695,55 +699,48 @@ impl Decodable for Transaction {
         // segwit
         if input.is_empty() {
             let segwit_flag = u8::consensus_decode(&mut d)?;
-            match segwit_flag {
-                // BIP144 input witnesses
-                1 => {
-                    let mut input = Vec::<TxIn>::consensus_decode(&mut d)?;
-                    let output = Vec::<TxOut>::consensus_decode(&mut d)?;
-                    for txin in input.iter_mut() {
-                        txin.witness = Decodable::consensus_decode(&mut d)?;
-                    }
-                    if !input.is_empty() && input.iter().all(|input| input.witness.is_empty()) {
-                        Err(encode::Error::ParseFailed("witness flag set but no witnesses present"))
-                    } else {
-                        Ok(Transaction {
-                            version,
-                            input,
-                            output,
-                            lock_time: Decodable::consensus_decode(d)?,
-                            mw_tx: None,
-                            is_hog_ex: false
-                        })
-                    }
-                }
-                8 | 9 => {
-                    let input = Vec::<TxIn>::consensus_decode(&mut d)?;
-                    let output = Vec::<TxOut>::consensus_decode(&mut d)?;
 
-                    // MimbleWimble transaction
-                    let is_mw_tx_present = u8::consensus_decode(&mut d)?;
-                    let mw_transaction: Option<mimblewimble::Transaction>  = 
-                        if is_mw_tx_present != 0 {
-                            Some(mimblewimble::Transaction::consensus_decode(&mut d)?)
-                        }
-                        else { 
-                            // HogEx transaction
-                            None
-                        };
-                    let is_hog_ex = mw_transaction.is_none();
-
-                    Ok(Transaction {
-                        version,
-                        input,
-                        output,
-                        lock_time: Decodable::consensus_decode(d)?,
-                        mw_tx: mw_transaction,
-                        is_hog_ex: is_hog_ex
-                    })
-                }
-                // We don't support anything else
-                x => Err(encode::Error::UnsupportedSegwitFlag(x)),
+            if segwit_flag & (FLAGS_SEGWIT | FLAGS_MWEB_TX) != segwit_flag {
+                // We don't support any flag except segwit(1) and MWEB Tx(8)
+                return Err(encode::Error::UnsupportedSegwitFlag(segwit_flag))
             }
+            
+            let mut input = Vec::<TxIn>::consensus_decode(&mut d)?;
+            let output = Vec::<TxOut>::consensus_decode(&mut d)?;
+
+            if segwit_flag & FLAGS_SEGWIT != 0 { // BIP144 input witnesses
+                for txin in input.iter_mut() {
+                    txin.witness = Decodable::consensus_decode(&mut d)?;
+                }
+                if !input.is_empty() && input.iter().all(|input| input.witness.is_empty()) {
+                    return Err(encode::Error::ParseFailed("witness flag set but no witnesses present"))
+                }
+            }
+            
+            let mut mw_transaction: Option<mimblewimble::Transaction> = None;
+            let mut is_hog_ex = false;
+            if segwit_flag & FLAGS_MWEB_TX != 0 {
+                // MimbleWimble transaction
+                let is_mw_tx_present = u8::consensus_decode(&mut d)?;
+                mw_transaction = 
+                    if is_mw_tx_present != 0 {
+                        Some(mimblewimble::Transaction::consensus_decode(&mut d)?)
+                    }
+                    else { 
+                        // HogEx transaction
+                        None
+                    };
+                is_hog_ex = mw_transaction.is_none();
+            }
+            
+            Ok(Transaction {
+                version,
+                input,
+                output,
+                lock_time: Decodable::consensus_decode(d)?,
+                mw_tx: mw_transaction,
+                is_hog_ex
+            })
         // non-segwit
         } else {
             Ok(Transaction {
