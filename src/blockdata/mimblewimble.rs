@@ -70,8 +70,8 @@ pub struct Input {
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PegOutCoin {
-    amount: i64,
-    script_pub_key: Script
+    pub amount: i64,
+    pub script_pub_key: Script
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -104,8 +104,8 @@ pub struct TxBody {
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Transaction {
-    kernel_offset: [u8; 32],
-    stealth_offset: [u8; 32],
+    pub kernel_offset: [u8; 32],
+    pub stealth_offset: [u8; 32],
     pub body: TxBody
 }
 
