@@ -32,7 +32,7 @@ use hashes::{Hash, HashEngine};
 use hash_types::{Wtxid, BlockHash, TxMerkleNode, WitnessMerkleNode, WitnessCommitment};
 use util::uint::Uint256;
 use consensus;
-use consensus::encode::Encodable;
+use consensus::encode::{Encodable,Decodable};
 use network::constants::Network;
 use blockdata::transaction::Transaction;
 use blockdata::constants::{max_target, WITNESS_SCALE_FACTOR};
@@ -171,14 +171,33 @@ pub struct MwebBlockHeader {
     kernel_mmr_size: u64,
 }
 
+/// Decode VarInt using VarInt encoding that is used in Bitcoin Core internally.
+/// See https://bitcoin.stackexchange.com/questions/114584/what-is-the-different-between-compactsize-and-varint-encoding
+/// In NBitcoin corresponding type is CompactVarInt.
+fn decode_compact_varint<D: io::Read>(d: D) -> Result<VarInt, consensus::encode::Error> {
+    let mut d = d.take(5);
+    let mut n = 0;
+    loop {
+        let ch_data = u8::consensus_decode(&mut d)?;
+        let a: u64 = n << 7;
+        let b: u8 = ch_data & 0x7F;
+        n = a | (b as u64);
+        if (ch_data & 0x80) != 0 {
+            n += 1;
+        }
+        else {
+            break;
+        }
+    }
+    Ok(VarInt(n))
+}
+
 impl consensus::Decodable for MwebBlockHeader {
     #[inline]
     fn consensus_decode<D: io::Read>(d:D,) -> Result<MwebBlockHeader, consensus::encode::Error>{
         let mut d = d.take( consensus::encode::MAX_VEC_SIZE as u64);
-        // not sure why, but have to skip this byte which always has value of 130
-        let _skip = u8::consensus_decode(&mut d)?;
         Ok(MwebBlockHeader {
-            height: VarInt::consensus_decode(&mut d)?.0 as i32,
+            height: decode_compact_varint(&mut d)?.0 as i32,
             output_root: consensus::Decodable::consensus_decode(&mut d)?,
             kernel_root: consensus::Decodable::consensus_decode(&mut d)?,
             leafset_root: consensus::Decodable::consensus_decode(&mut d)?,
@@ -591,6 +610,7 @@ mod tests {
         assert_eq!(real_decode.header.bits, 545259519);
         assert_eq!(real_decode.header.nonce, 0);
 
+        // Block::size() is not correct blocks with MWEB block
         //assert_eq!(real_decode.size(), hogex_block.len());
 
         assert!(real_decode.check_witness_commitment());
