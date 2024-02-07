@@ -464,6 +464,7 @@ impl ::std::error::Error for Bip34Error {}
 
 #[cfg(test)]
 mod tests {
+    use hashes::hex::ToHex;
     use hashes::hex::FromHex;
 
     use blockdata::block::{Block, BlockHeader};
@@ -562,6 +563,103 @@ mod tests {
         assert!(real_decode.check_witness_commitment());
 
         assert_eq!(serialize(&real_decode), segwit_block);
+    }
+
+    // Block with HogEx transaction
+    #[test]
+    fn hogex_block_test() {
+        let hogex_block = Vec::from_hex(include_str!("../../test_data/hogex_block.txt")).unwrap();
+        
+        let decode: Result<Block, _> = deserialize(&hogex_block);
+
+        let prevhash = 
+            Vec::from_hex("cef9a2aa2bd1981ffec92bbfc6162543dbc5e068caf17645960e96be7c0ce679")
+                .unwrap()
+                .into_iter().rev().collect::<Vec<_>>();
+        let merkle = 
+            Vec::from_hex("53eba1ec6686c5f3e9326cce91ef899b245d049530c0f32ae4345f32e0402914")
+                .unwrap()
+                .into_iter().rev().collect::<Vec<_>>();
+
+        assert!(decode.is_ok());
+        let real_decode = decode.unwrap();
+        assert_eq!(real_decode.header.version, 536870912);
+        assert_eq!(serialize(&real_decode.header.prev_blockhash), prevhash);
+        assert_eq!(serialize(&real_decode.header.merkle_root), merkle);
+        assert_eq!(real_decode.header.merkle_root, real_decode.compute_merkle_root().unwrap());
+        assert_eq!(real_decode.header.time, 1706812942);
+        assert_eq!(real_decode.header.bits, 545259519);
+        assert_eq!(real_decode.header.nonce, 0);
+
+        //assert_eq!(real_decode.size(), hogex_block.len());
+
+        assert!(real_decode.check_witness_commitment());
+
+        assert_eq!(real_decode.txdata.len(), 3);
+        assert_eq!(real_decode.txdata[0].is_hog_ex, false);
+        assert_eq!(real_decode.txdata[1].is_hog_ex, false);
+        assert_eq!(real_decode.txdata[2].is_hog_ex, true);
+
+        match real_decode.mweb_block {
+            None => { panic!("Must contain MWEB block") }
+            Some(mweb_block) => { 
+                // header
+                assert_eq!(mweb_block.header.height, 435);
+                assert_eq!(mweb_block.header.kernel_mmr_size, 1);
+                assert_eq!(mweb_block.header.output_mmr_size, 2);
+                assert_eq!(mweb_block.header.kernel_offset.to_hex(), "9e984f060b4233e1a34afb44ae006ffd7ade9abb05b3c78dad8029d696bf72f7");
+                assert_eq!(mweb_block.header.kernel_root.to_hex(), "745c9ac2352031762feccc8ba9b21353eb988f5f82e17943dbbb836753bf08e2");
+                assert_eq!(mweb_block.header.leafset_root.to_hex(), "af2edc674154ff129d9e826727ada0828d3ba480924bbed84bf6dcae2e1f1db2");
+                assert_eq!(mweb_block.header.output_root.to_hex(), "a822eb3e28db055248a0ae4510052bc24381c6c0323efa93bd745e6715e425a7");
+                assert_eq!(mweb_block.header.stealth_offset.to_hex(), "c0ecbf5563ed14f264fda787033cc5f5270d8c17e49633b98c11908cdabf282d");
+                // mw tx
+                let mw_tx = mweb_block.tx_body;
+                // inputs
+                assert_eq!(mw_tx.inputs.len(), 0);
+                // kernel
+                assert_eq!(mw_tx.kernels.len(), 1);
+                let kernel = &mw_tx.kernels[0];
+                assert_eq!(kernel.features, 19);
+                assert_eq!(kernel.fee, Some(2100));
+                assert_eq!(kernel.excess.to_hex(), "086ef5b161faeb8bbc87f6b538fc399480d5733db5929fa9eea503b177e8b79da5");
+                assert_eq!(kernel.pegin, Some(1000002100));
+                assert_eq!(kernel.signature.to_hex(), "6af4a676f878fda7a4bfb0a46b8afb04528f71b2122a7aee9f3f1ae3044786932dcc06d6fae3be55160aad5f9562c7c34ae8d4a42c3ed117e54e73af565d85d4");
+                assert_eq!(kernel.stealth_excess.unwrap().to_hex(), "02b0b948f32e91675452647396563882109c42ff8a9ea81e73966e197fed82d4a6");
+                // output
+                assert_eq!(mw_tx.outputs.len(), 1);
+                let output = mw_tx.outputs[0].clone();
+                assert_eq!(output.message.features, 1);
+                let std_fields = output.message.standard_fields.unwrap();
+                assert_eq!(std_fields.view_tag, 156);
+                assert_eq!(std_fields.key_exchange_pubkey.to_hex(), "02a980d8bd1eb6cd20c549ac6667541b2f98822ba801cb06aaa996646881ce2f0a");
+                assert_eq!(std_fields.masked_value, 5350801249539001306);
+                assert_eq!(std_fields.masked_nonce.to_hex(), "d212e0ee248e77a87960e7c7afa05470");
+                assert_eq!(output.commitment.to_hex(), "0871fe35144c1c69a2f669d0ba86788b881e586adcf4f467c59dfde31bbf2279ef");
+                assert_eq!(
+                    output.range_proof.to_hex(), 
+                    "221fb94e2163a60084b741f6ab99e7fcc0e38088e0d30a15aa00365cdbe57894d4f1ebbc3645b0\
+                    6b4ab23b9634d769f88f5c188889510b63522e0ed514e9ea6c090c48cd3042686b6531c06c893c1\
+                    d52ab35e440bffc68a4d6512cbe0ffe316be4f81ea4ff7412050c31fd48605c835944bf0c7d9f1e\
+                    5641d3f6dbe0470621e90c7590e130ba95614768bc0ae588b68f331481cf53c322d50b21f43fb2b\
+                    3869aad3c073f37700bf1b008959bd4ef8ce75da8e6ea940e7df5fcc773add1f444eed906d7532c\
+                    e6d0c7e5f8ffbfe850fa1dd0ae3cd57a8bae56c7b67204109bb5b0e486be9df8c85ff8dc912f16d\
+                    e82181082750770ebfd0c830901aba039fe3d37e0233c6e2a57b744888b2b0d4a7bce0930d2cc57\
+                    d51a0c9540597970311943c485988c76e5985d996bc5877e3619205141db4bd65f9f896ff31ec26\
+                    7ca8416ad979e9c78f5de921503a6fece2acee085510f01793e1e0e285d8ededc6bb58e3ef6b403\
+                    19c5ae6a0b67e9e677b30d9c42ab11dfd25fa9cd9e567ed08bc959868980e8652201aa87fdc69b4\
+                    51c4a2e41317c728fae78dfd224403beafa8cb1634f7b1dd5ad5934be2b8a5cb7f0b2e04873aa25\
+                    21c577990d7a39e6c4285634e553500ed8712790625b762238739bbe10525ca571147f15d074289\
+                    368dc9164f402ebd415df479e7ba31e2a6c4994327fd47802723c94e1c6007653fd5ab36fff9240\
+                    1f2804c36a81d0f90d98c0b4d781bfa7d7e8c2e93313336a69a6c955a68a412373af664e1d9d383\
+                    083ccf236ae5296d82bc4abe353f07faf23be12a10182581647e2fbb834db4e46c29854b7f18f52\
+                    ed2a0ca55d5617cf6fa662654eba0d90fae318aa28c06981cb60685f3362d5f932eb5c2e66ea112\
+                    30a293ad76d16d2ca5d218d204ffe3c5e220586aa9ec209be55a970366f830710e46a05f5605b5a\
+                    73e63227");
+                assert_eq!(output.receiver_public_key.to_hex(), "0333c3e2213250cfa1741083d6ebfbcdbe40008fc8c6a58ca4234adf77bb484458");
+                assert_eq!(output.sender_public_key.to_hex(), "02093961ce9a6be06eca61b0491b6a5cfcb19babf3d616482057a9b96933d12bbb");
+                assert_eq!(output.signature.to_hex(), "db7314b8e8446fa933655ace36770e9170ab69fd06ce87a8d0e227b4652eefdabb1e523db877d10601347382348fb314387eca7fe41e0281b9f6432a7e876b55");
+            }
+        }
     }
 
     #[test]
