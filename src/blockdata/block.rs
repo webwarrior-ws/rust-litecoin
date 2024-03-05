@@ -203,8 +203,8 @@ impl consensus::Decodable for MwebBlockHeader {
             leafset_root: consensus::Decodable::consensus_decode(&mut d)?,
             kernel_offset: consensus::Decodable::consensus_decode(&mut d)?,
             stealth_offset: consensus::Decodable::consensus_decode(&mut d)?,
-            output_mmr_size: VarInt::consensus_decode(&mut d)?.0,
-            kernel_mmr_size: VarInt::consensus_decode(&mut d)?.0
+            output_mmr_size: decode_compact_varint(&mut d)?.0,
+            kernel_mmr_size: decode_compact_varint(&mut d)?.0
         })
     }
 }
