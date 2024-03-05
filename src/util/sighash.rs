@@ -19,11 +19,11 @@
 //! [Bip143](https://github.com/bitcoin/bips/blob/99701f68a88ce33b2d0838eb84e115cef505b4c2/bip-0143.mediawiki)
 //! and legacy (before Bip143).
 //!
-
+#![allow(unused_imports)]
 use prelude::*;
 
 pub use blockdata::transaction::{EcdsaSighashType, SighashTypeParseError};
-use blockdata::witness::Witness;
+use Witness;
 use consensus::{encode, Encodable};
 use core::{str, fmt};
 use core::ops::{Deref, DerefMut};
@@ -792,15 +792,14 @@ mod tests {
     use super::*;
     use consensus::deserialize;
     use hashes::hex::FromHex;
-    use hashes::{Hash, HashEngine};
-    use util::sighash::{Annex, Error, Prevouts, ScriptPath, SighashCache};
+    use hashes::HashEngine;
     use std::str::FromStr;
     use hashes::hex::ToHex;
-    use util::taproot::{TapTweakHash, TapSighashHash, TapBranchHash, TapLeafHash};
-    use secp256k1::{self, SecretKey, XOnlyPublicKey};
+    use util::taproot::{TapTweakHash, TapBranchHash};
+    use secp256k1::{SecretKey, XOnlyPublicKey};
     extern crate serde_json;
 
-    use {Script, Transaction, TxIn, TxOut};
+    use TxIn;
 
     #[test]
     fn test_tap_sighash_hash() {

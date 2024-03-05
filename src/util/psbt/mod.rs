@@ -312,17 +312,13 @@ mod tests {
     use hashes::{sha256, hash160, Hash, ripemd160};
     use hash_types::Txid;
 
-    use secp256k1::{Secp256k1, self};
+    use secp256k1::Secp256k1;
 
-    use blockdata::script::Script;
-    use blockdata::transaction::{Transaction, TxIn, TxOut, OutPoint};
+    use blockdata::transaction::{TxIn, TxOut, OutPoint};
     use network::constants::Network::Bitcoin;
     use consensus::encode::{deserialize, serialize, serialize_hex};
-    use util::bip32::{ChildNumber, ExtendedPrivKey, ExtendedPubKey, Fingerprint, KeySource};
-    use util::psbt::map::{Output, Input};
-    use util::psbt::raw;
+    use util::bip32::{ChildNumber, ExtendedPrivKey, Fingerprint};
 
-    use std::collections::BTreeMap;
     use blockdata::witness::Witness;
 
     #[test]
@@ -883,7 +879,6 @@ mod tests {
 
     mod bip_371_vectors {
         use super::*;
-        use super::serialize;
 
         #[test]
         fn invalid_vectors() {

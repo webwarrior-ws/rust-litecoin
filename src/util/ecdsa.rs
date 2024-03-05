@@ -21,7 +21,6 @@ use core::str::FromStr;
 use core::{fmt, iter};
 use hashes::hex::{self, FromHex};
 use blockdata::transaction::NonStandardSighashType;
-use secp256k1;
 use EcdsaSighashType;
 
 /// An ECDSA signature with the corresponding hash type.

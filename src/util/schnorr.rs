@@ -22,7 +22,7 @@ use prelude::*;
 
 use secp256k1::{XOnlyPublicKey as _XOnlyPublicKey, KeyPair as _KeyPair};
 
-use secp256k1::{self, Secp256k1, Verification, constants};
+use secp256k1::{Secp256k1, Verification, constants};
 use hashes::Hash;
 use util::taproot::{TapBranchHash, TapTweakHash};
 use SchnorrSighashType;

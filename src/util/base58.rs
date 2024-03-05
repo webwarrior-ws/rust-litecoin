@@ -23,7 +23,6 @@ use prelude::*;
 use core::{fmt, str, iter, slice};
 
 use hashes::{sha256d, Hash, hex};
-use secp256k1;
 
 use util::{endian, key};
 

@@ -21,8 +21,6 @@
 
 use prelude::*;
 
-use core::default::Default;
-
 use hashes::hex::{HexIterator, Error as HexError};
 use hashes::sha256d;
 use blockdata::opcodes;
@@ -184,7 +182,6 @@ pub fn genesis_block(network: Network) -> Block {
 
 #[cfg(test)]
 mod test {
-    use core::default::Default;
     use hashes::hex::FromHex;
 
     use network::constants::Network;

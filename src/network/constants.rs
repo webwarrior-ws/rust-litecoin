@@ -37,7 +37,7 @@
 //! assert_eq!(&bytes[..], &[0xF9, 0xBE, 0xB4, 0xD9]);
 //! ```
 
-use core::{fmt, ops, convert::From};
+use core::{fmt, ops};
 
 use io;
 use consensus::encode::{self, Encodable, Decodable};

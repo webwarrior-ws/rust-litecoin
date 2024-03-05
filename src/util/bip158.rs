@@ -511,9 +511,6 @@ impl<'a> BitStreamWriter<'a> {
 
 #[cfg(test)]
 mod test {
-    use io::Cursor;
-
-    use hash_types::BlockHash;
     use hashes::hex::FromHex;
 
     use super::*;

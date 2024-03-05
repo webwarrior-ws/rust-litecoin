@@ -40,7 +40,6 @@ use core::str::FromStr;
 #[cfg(feature = "std")] use std::error;
 
 use secp256k1::{Secp256k1, Verification, XOnlyPublicKey};
-use bech32;
 use hashes::{sha256, Hash, HashEngine};
 use hash_types::{PubkeyHash, ScriptHash};
 use blockdata::{script, opcodes};
@@ -970,14 +969,10 @@ fn segwit_redeem_hash(pubkey_hash: &[u8]) -> ::hashes::hash160::Hash {
 
 #[cfg(test)]
 mod tests {
-    use core::str::FromStr;
-
     use hashes::hex::{FromHex, ToHex};
 
     use blockdata::script::Script;
     use network::constants::Network::{Bitcoin, Testnet};
-    use util::key::PublicKey;
-    use secp256k1::XOnlyPublicKey;
 
     use super::*;
 

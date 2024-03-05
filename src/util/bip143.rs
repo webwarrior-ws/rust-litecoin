@@ -188,9 +188,6 @@ impl<R: DerefMut<Target = Transaction>> SigHashCache<R> {
 #[allow(deprecated)]
 mod tests {
     use std::str::FromStr;
-    use hash_types::Sighash;
-    use blockdata::script::Script;
-    use blockdata::transaction::Transaction;
     use consensus::encode::deserialize;
     use network::constants::Network;
     use util::address::Address;
