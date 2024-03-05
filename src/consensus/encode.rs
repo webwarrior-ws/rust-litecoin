@@ -29,7 +29,7 @@
 
 use prelude::*;
 
-use core::{fmt, mem, u32, convert::From};
+use core::{fmt, mem, u32};
 #[cfg(feature = "std")] use std::error;
 
 use hashes::{sha256d, Hash, sha256};
@@ -775,14 +775,9 @@ impl Decodable for TapLeafHash {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use core::{mem::{self, discriminant}, fmt};
-    use super::{deserialize, serialize, Error, CheckedData, VarInt};
-    use super::{Transaction, BlockHash, FilterHash, TxMerkleNode, TxOut, TxIn};
-    use consensus::{Encodable, deserialize_partial, Decodable};
+    use core::mem::discriminant;
     use util::endian::{u64_to_array_le, u32_to_array_le, u16_to_array_le};
     use secp256k1::rand::{thread_rng, Rng};
-    #[cfg(feature = "std")]
-    use network::{Address, message_blockdata::Inventory};
 
     #[test]
     fn serialize_int_test() {

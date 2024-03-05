@@ -18,7 +18,7 @@
 
 use prelude::*;
 use io;
-use secp256k1::{self, Secp256k1};
+use secp256k1::Secp256k1;
 
 use core::fmt;
 use core::cmp::Reverse;
@@ -1097,13 +1097,11 @@ impl error::Error for TaprootError {}
 #[cfg(test)]
 mod test {
     use {Address, Network};
-    use schnorr::TapTweak;
 
     use super::*;
     use hashes::hex::{FromHex, ToHex};
     use hashes::sha256t::Tag;
-    use hashes::{sha256, Hash, HashEngine};
-    use secp256k1::{VerifyOnly, XOnlyPublicKey};
+    use secp256k1::VerifyOnly;
     use core::str::FromStr;
     extern crate serde_json;
 

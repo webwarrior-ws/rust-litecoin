@@ -1078,12 +1078,9 @@ mod test {
     use core::str::FromStr;
 
     use super::*;
-    use super::build_scriptint;
 
     use hashes::hex::{FromHex, ToHex};
     use consensus::encode::{deserialize, serialize};
-    use blockdata::opcodes;
-    use util::key::PublicKey;
     use util::psbt::serialize::Serialize;
 
     #[test]

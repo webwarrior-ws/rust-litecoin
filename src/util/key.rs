@@ -25,7 +25,7 @@ use core::fmt::{self, Write as _fmtWrite};
 use io;
 #[cfg(feature = "std")] use std::error;
 
-use secp256k1::{self, Secp256k1};
+use secp256k1::Secp256k1;
 use network::constants::Network;
 use hashes::{Hash, hash160, hex, hex::FromHex};
 use hash_types::{PubkeyHash, WPubkeyHash};

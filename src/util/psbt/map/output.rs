@@ -13,7 +13,6 @@
 //
 
 use prelude::*;
-use core;
 
 use io;
 
@@ -21,7 +20,6 @@ use blockdata::script::Script;
 use consensus::encode;
 use secp256k1::XOnlyPublicKey;
 use util::bip32::KeySource;
-use secp256k1;
 use util::psbt::map::Map;
 use util::psbt::raw;
 use util::psbt::Error;

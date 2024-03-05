@@ -27,7 +27,7 @@ use core::ops::Index;
 
 use hash_types::XpubIdentifier;
 use hashes::{sha512, Hash, HashEngine, Hmac, HmacEngine, hex};
-use secp256k1::{self, Secp256k1, XOnlyPublicKey};
+use secp256k1::{Secp256k1, XOnlyPublicKey};
 
 use network::constants::Network;
 use util::{base58, endian, key};
@@ -842,12 +842,9 @@ mod tests {
     use super::*;
     use super::ChildNumber::{Hardened, Normal};
 
-    use core::str::FromStr;
-
-    use secp256k1::{self, Secp256k1};
     use hashes::hex::FromHex;
 
-    use network::constants::Network::{self, Bitcoin};
+    use network::constants::Network::Bitcoin;
 
     #[test]
     fn test_parse_derivation_path() {

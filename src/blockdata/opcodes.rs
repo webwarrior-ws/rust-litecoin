@@ -19,12 +19,13 @@
 //!
 
 #![allow(non_camel_case_types)]
+#![allow(unused_imports)]
 
 #[cfg(feature = "serde")] use serde;
 
 #[cfg(feature = "serde")] use prelude::*;
 
-use core::{fmt, convert::From};
+use core::fmt;
 
 // Note: I am deliberately not implementing PartialOrd or Ord on the
 //       opcode enum. If you want to check ranges of opcodes, etc.,

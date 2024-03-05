@@ -39,7 +39,6 @@ mod message_signing {
     #[cfg(feature = "std")] use std::error;
 
     use hashes::sha256d;
-    use secp256k1;
     use secp256k1::ecdsa::{RecoveryId, RecoverableSignature};
 
     use util::key::PublicKey;
@@ -268,8 +267,6 @@ pub fn signed_msg_hash(msg: &str) -> sha256d::Hash {
 mod tests {
     use super::*;
     use hashes::hex::ToHex;
-    use super::script_find_and_remove;
-    use super::signed_msg_hash;
 
     #[test]
     fn test_script_find_and_remove() {
