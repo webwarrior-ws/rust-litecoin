@@ -29,15 +29,11 @@ use io;
 use core::{fmt, default::Default};
 use core::ops::Index;
 
-#[cfg(feature = "serde")] use serde;
-
 use hash_types::{PubkeyHash, WPubkeyHash, ScriptHash, WScriptHash};
 use blockdata::opcodes;
 use consensus::{encode, Decodable, Encodable};
 use hashes::{Hash, hex};
 use policy::DUST_RELAY_TX_FEE;
-#[cfg(feature="bitcoinconsensus")] use bitcoinconsensus;
-#[cfg(feature="bitcoinconsensus")] use core::convert::From;
 use OutPoint;
 
 use util::key::PublicKey;

@@ -21,8 +21,6 @@
 #![allow(non_camel_case_types)]
 #![allow(unused_imports)]
 
-#[cfg(feature = "serde")] use serde;
-
 #[cfg(feature = "serde")] use prelude::*;
 
 use core::fmt;

@@ -1217,9 +1217,6 @@ mod tests {
     #[cfg(feature = "std")]
     use std::panic;
 
-    #[cfg(feature = "serde")]
-    use serde_test;
-
     #[test]
     fn add_sub_mul_div() {
         let sat = Amount::from_sat;

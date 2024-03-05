@@ -9,9 +9,6 @@ use io::{self, Read, Write};
 use prelude::*;
 use VarInt;
 
-#[cfg(feature = "serde")]
-use serde;
-
 /// The Witness is the data used to unlock bitcoins since the [segwit upgrade](https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki)
 ///
 /// Can be logically seen as an array of byte-arrays `Vec<Vec<u8>>` and indeed you can convert from

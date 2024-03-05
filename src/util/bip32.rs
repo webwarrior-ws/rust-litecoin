@@ -23,7 +23,6 @@ use io::Write;
 use core::{fmt, str::FromStr, default::Default};
 use core::ops::Index;
 #[cfg(feature = "std")] use std::error;
-#[cfg(feature = "serde")] use serde;
 
 use hash_types::XpubIdentifier;
 use hashes::{sha512, Hash, HashEngine, Hmac, HmacEngine, hex};
