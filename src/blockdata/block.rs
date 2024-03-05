@@ -683,6 +683,13 @@ mod tests {
     }
 
     #[test]
+    fn regresssion_block_2644351_test() {
+        let hogex_block = Vec::from_hex(include_str!("../../test_data/block_2644351.txt")).unwrap();
+        
+        let _: Block = deserialize(&hogex_block).unwrap();
+    }
+
+    #[test]
     fn block_version_test() {
         let block = Vec::from_hex("ffffff7f0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000").unwrap();
         let decode: Result<Block, _> = deserialize(&block);
