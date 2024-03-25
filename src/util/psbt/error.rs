@@ -20,7 +20,6 @@ use blockdata::transaction::Transaction;
 use consensus::encode;
 use util::psbt::raw;
 
-use hashes;
 use util::bip32::ExtendedPubKey;
 
 /// Enum for marking psbt hash error.

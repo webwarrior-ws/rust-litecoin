@@ -203,8 +203,8 @@ impl consensus::Decodable for MwebBlockHeader {
             leafset_root: consensus::Decodable::consensus_decode(&mut d)?,
             kernel_offset: consensus::Decodable::consensus_decode(&mut d)?,
             stealth_offset: consensus::Decodable::consensus_decode(&mut d)?,
-            output_mmr_size: VarInt::consensus_decode(&mut d)?.0,
-            kernel_mmr_size: VarInt::consensus_decode(&mut d)?.0
+            output_mmr_size: decode_compact_varint(&mut d)?.0,
+            kernel_mmr_size: decode_compact_varint(&mut d)?.0
         })
     }
 }
@@ -680,6 +680,13 @@ mod tests {
                 assert_eq!(output.signature.to_hex(), "db7314b8e8446fa933655ace36770e9170ab69fd06ce87a8d0e227b4652eefdabb1e523db877d10601347382348fb314387eca7fe41e0281b9f6432a7e876b55");
             }
         }
+    }
+
+    #[test]
+    fn regresssion_block_2644351_test() {
+        let hogex_block = Vec::from_hex(include_str!("../../test_data/block_2644351.txt")).unwrap();
+        
+        let _: Block = deserialize(&hogex_block).unwrap();
     }
 
     #[test]

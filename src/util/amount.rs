@@ -1216,10 +1216,6 @@ mod tests {
     use super::*;
     #[cfg(feature = "std")]
     use std::panic;
-    use core::str::FromStr;
-
-    #[cfg(feature = "serde")]
-    use serde_test;
 
     #[test]
     fn add_sub_mul_div() {

@@ -147,12 +147,11 @@ impl_consensus_encoding!(GetHeadersMessage, version, locator_hashes, stop_hash);
 
 #[cfg(test)]
 mod tests {
-    use super::{Vec, GetHeadersMessage, GetBlocksMessage};
+    use super::{GetHeadersMessage, GetBlocksMessage};
 
     use hashes::hex::FromHex;
 
     use consensus::encode::{deserialize, serialize};
-    use core::default::Default;
 
     #[test]
     fn getblocks_message_test() {

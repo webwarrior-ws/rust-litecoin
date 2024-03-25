@@ -11,7 +11,6 @@ pub mod btreemap_byte_values {
 
     use prelude::*;
     use hashes::hex::{FromHex, ToHex};
-    use serde;
 
     pub fn serialize<S, T>(v: &BTreeMap<T, Vec<u8>>, s: S) -> Result<S::Ok, S::Error>
     where
@@ -78,7 +77,6 @@ pub mod btreemap_as_seq {
     // NOTE: This module can be exactly copied to use with HashMap.
 
     use prelude::*;
-    use serde;
 
     pub fn serialize<S, T, U>(v: &BTreeMap<T, U>, s: S) -> Result<S::Ok, S::Error>
     where
@@ -148,7 +146,6 @@ pub mod btreemap_as_seq_byte_values {
     // NOTE: This module can be exactly copied to use with HashMap.
 
     use prelude::*;
-    use serde;
 
     /// A custom key-value pair type that serialized the bytes as hex.
     #[derive(Debug, Deserialize)]
@@ -228,7 +225,6 @@ pub mod hex_bytes {
     #![allow(missing_docs)]
 
     use hashes::hex::{FromHex, ToHex};
-    use serde;
 
     pub fn serialize<T, S>(bytes: &T, s: S) -> Result<S::Ok, S::Error>
     where

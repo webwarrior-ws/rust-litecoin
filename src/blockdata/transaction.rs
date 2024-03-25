@@ -26,10 +26,10 @@
 use prelude::*;
 
 use io;
-use core::{fmt, str, default::Default};
+use core::{fmt, str};
 #[cfg(feature = "std")] use std::error;
 
-use hashes::{self, Hash, sha256d};
+use hashes::{Hash, sha256d};
 use hashes::hex::FromHex;
 
 use util::endian;
@@ -930,18 +930,13 @@ mod tests {
     use super::*;
 
     use core::str::FromStr;
-    use blockdata::constants::WITNESS_SCALE_FACTOR;
-    use blockdata::script::Script;
     use consensus::encode::serialize;
     use consensus::encode::deserialize;
-
-    use hashes::Hash;
-    use hashes::hex::FromHex;
+    
     use hashes::hex::ToHex;
 
     use hash_types::*;
     use secp256k1::PublicKey;
-    use super::EcdsaSighashType;
     use util::sighash::SighashCache;
 
     #[test]
