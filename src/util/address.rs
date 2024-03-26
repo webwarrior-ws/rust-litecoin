@@ -1044,6 +1044,18 @@ mod tests {
     }
 
     #[test]
+    fn test_hogex_addr_encoding() {
+        // see https://github.com/rust-litecoin/rust-litecoin/issues/4
+        let tx_bytes = Vec::from_hex("020000000008014c6760f58df93356b4f23ab8be1f33b44be814bdfafb77c9758682d39d492eb50000000000ffffffff012c8a768b1c030000225820638c6c06eef97d9155e56990ad0cf3358ce00b47609f132750cbd05364db58da0000000000").unwrap();
+        let tx: crate::Transaction = crate::consensus::deserialize(&tx_bytes).unwrap();
+
+        let addr = 
+            Address::from_script(&tx.output[0].script_pubkey, Bitcoin).unwrap();
+
+        assert_eq!(addr.to_string(), "ltc1gvwxxcphwl97ez409dxg26r8nxkxwqz68vz03xf6se0g9xexmtrdqu4hale");
+    }
+
+    #[test]
     #[ignore = "Wrong test data for Litecoin"]
     fn test_p2sh_parse() {
         let script = hex_script!("552103a765fc35b3f210b95223846b36ef62a4e53e34e2925270c2c7906b92c9f718eb2103c327511374246759ec8d0b89fa6c6b23b33e11f92c5bc155409d86de0c79180121038cae7406af1f12f4786d820a1466eec7bc5785a1b5e4a387eca6d797753ef6db2103252bfb9dcaab0cd00353f2ac328954d791270203d66c2be8b430f115f451b8a12103e79412d42372c55dd336f2eb6eb639ef9d74a22041ba79382c74da2338fe58ad21035049459a4ebc00e876a9eef02e72a3e70202d3d1f591fc0dd542f93f642021f82102016f682920d9723c61b27f562eb530c926c00106004798b6471e8c52c60ee02057ae");
