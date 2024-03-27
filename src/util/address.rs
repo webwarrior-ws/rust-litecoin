@@ -331,7 +331,7 @@ impl WitnessVersion {
     /// Determines the checksum variant. See BIP-0350 for specification.
     pub fn bech32_variant(&self) -> bech32::Variant {
         match self {
-            WitnessVersion::V0 => bech32::Variant::Bech32,
+            WitnessVersion::V0 | WitnessVersion::V8 => bech32::Variant::Bech32,
             _ => bech32::Variant::Bech32m,
         }
     }
