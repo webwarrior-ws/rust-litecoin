@@ -266,6 +266,8 @@ impl consensus::Decodable for Block {
     fn consensus_decode<D: io::Read>(d:D,) -> Result<Block, consensus::encode::Error>{
         let mut d = d.take(consensus::encode::MAX_VEC_SIZE as u64);
         let header = BlockHeader::consensus_decode(&mut d)?;
+        // log block hash
+        println!("Decoding block {}", header.merkle_root);
         let txdata = Vec::<Transaction>::consensus_decode(&mut d)?;
         let mweb_block =
             if txdata.len() >= 2 {
