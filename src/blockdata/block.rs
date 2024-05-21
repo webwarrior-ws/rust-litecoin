@@ -266,15 +266,22 @@ impl consensus::Decodable for Block {
     fn consensus_decode<D: io::Read>(d:D,) -> Result<Block, consensus::encode::Error>{
         let mut d = d.take(consensus::encode::MAX_VEC_SIZE as u64);
         let header = BlockHeader::consensus_decode(&mut d)?;
-        // log block hash
-        println!("Decoding block {}", header.merkle_root);
-        let txdata = Vec::<Transaction>::consensus_decode(&mut d)?;
+        let txdata = Vec::<Transaction>::consensus_decode(&mut d).or_else(| err: consensus::encode::Error | {
+            println!("Error decoding transactions of block {}", &header.block_hash());
+            Result::Err(err)
+        })?;
         let mweb_block =
             if txdata.len() >= 2 {
                 match txdata.last() {
                     Some(tx) if tx.is_hog_ex => {
-                        if u8::consensus_decode(&mut d)? == 1 {
-                            Some(MwebBlock::consensus_decode(&mut d)?)
+                        if u8::consensus_decode(&mut d).or_else(| err: consensus::encode::Error | {
+                            println!("Error decoding block {}", &header.block_hash());
+                            Result::Err(err)
+                        })? == 1 {
+                            Some(MwebBlock::consensus_decode(&mut d).or_else(| err: consensus::encode::Error | {
+                                println!("Error decoding mweb of block {}", &header.block_hash());
+                                Result::Err(err)
+                            })?)
                         }
                         else {
                             None
