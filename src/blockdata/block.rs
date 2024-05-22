@@ -697,7 +697,16 @@ mod tests {
         
         let _: Block = deserialize(&hogex_block).unwrap();
     }
-
+    
+    #[test]
+    fn regresssion_block_269917_test() {
+        let block = include_bytes!("../../test_data/block_4d778092a49d27893a83ab5360dac4468fc8ef27de49134a9cd5e26470045e91.raw").to_vec();
+        
+        let decoded: Block = deserialize(&block).unwrap();
+        let blockhash = decoded.block_hash().to_hex();
+        assert_eq!(blockhash, "4d778092a49d27893a83ab5360dac4468fc8ef27de49134a9cd5e26470045e91");
+    }
+    
     #[test]
     fn block_version_test() {
         let block = Vec::from_hex("ffffff7f0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000").unwrap();
